@@ -75,6 +75,19 @@ public class FindAndInvoke {
         return RemoteInvoke.invokeMethod(oam, newParams);
     }
 
+    /**
+     * Find and invoke the method on a single matching object, identified from the
+     * collection of Objects passed to this method.
+     *
+     * @param objects the objects to find and invoke the method on.
+     * @param methodSig the signature of the method, minus params.
+     * @param newParams the parameters to pass to the method.
+     * @return the result of the invocation.
+     * @throws ReflectiveException If unable to reflectively invoke the method.
+     * @throws InvocationException If a normal exception occurs while trying to reflectively
+     *                              invoke the method.
+     * @throws NoMethodException if the method being searched for doesn't exist.
+     */
     public static Object findAndInvokeMethod(Collection<?> objects, String methodSig, Object...newParams)
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
         return findAndInvokeMethod(objects.toArray(), methodSig, newParams);
