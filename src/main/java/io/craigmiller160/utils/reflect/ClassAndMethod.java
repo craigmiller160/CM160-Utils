@@ -19,6 +19,12 @@ package io.craigmiller160.utils.reflect;
 import java.lang.reflect.Method;
 
 /**
+ * A special implementation of ReflectiveMethodHolder, where
+ * the source object is simply a Class type. This can't be
+ * used for doing a reflective invocation, but it can be
+ * used to track methods and their parent classes for later
+ * invocation.
+ *
  * Created by craig on 3/15/16.
  */
 public class ClassAndMethod extends ReflectiveMethodHolder<Class<?>> {

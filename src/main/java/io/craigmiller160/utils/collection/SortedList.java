@@ -21,11 +21,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.NoSuchElementException;
 
 /**
  * A special implementation of the List interface
@@ -61,18 +59,45 @@ public class SortedList<T> extends AbstractList<T> {
      */
     private Comparator<T> comparator;
 
+    /**
+     * Create a new SortedList with a default
+     * comparator to maintain its sort order.
+     */
     public SortedList(){
         this(null, null);
     }
 
+    /**
+     * Create a new SortedList with a default
+     * comparator to maintain its sort order. The elements
+     * of the provided collection will be added to the
+     * list in sorted order.
+     *
+     * @param collection the Collection to add to the list.
+     */
     public SortedList(Collection<T> collection){
         this(collection, null);
     }
 
+    /**
+     * Create a new SortedList, with its sort order
+     * enforced by the provided Comparator.
+     *
+     * @param comparator the Comparator to enforce the sort order.
+     */
     public SortedList(Comparator<T> comparator){
         this(null, comparator);
     }
 
+    /**
+     * Create a new SortedList, with its sort order
+     * enforced by the provided Comparator. The elements
+     * of the provided collection will be added to the
+     * list in sorted order.
+     *
+     * @param collection the Collection to add to the list.
+     * @param comparator the Comparator to enforce the sort order.
+     */
     public SortedList(Collection<T> collection, Comparator<T> comparator){
         this.list = new ArrayList<>();
         setComparator(comparator);
@@ -82,6 +107,11 @@ public class SortedList<T> extends AbstractList<T> {
         }
     }
 
+    /**
+     * Set the Comparator to use to enforce the sort order of this list.
+     *
+     * @param comparator the Comparator.
+     */
     public void setComparator(Comparator<T> comparator){
         if(comparator != null){
             this.comparator = comparator;
@@ -93,6 +123,12 @@ public class SortedList<T> extends AbstractList<T> {
         Collections.sort(list, this.comparator);
     }
 
+    /**
+     * Get the comparator that enforces the sort
+     * order of this list.
+     *
+     * @return the Comparator.
+     */
     public Comparator<T> getComparator(){
         return comparator;
     }
@@ -145,6 +181,14 @@ public class SortedList<T> extends AbstractList<T> {
         add(object);
     }
 
+    /**
+     * Add the provided object to this List. Its
+     * placement in the list will be determined
+     * by the sort order.
+     *
+     * @param object the object to add to the list.
+     * @return true if it's added successfully.
+     */
     @Override
     public boolean add(T object) {
         int position = getSortedPosition(object);
@@ -152,6 +196,15 @@ public class SortedList<T> extends AbstractList<T> {
         return true;
     }
 
+    /**
+     * Internal utility method to get the position
+     * of an object based on the sort order. It returns
+     * the position the object either does currently have
+     * or the position it should have after being added.
+     *
+     * @param object the object to get the position of.
+     * @return the position the object should have.
+     */
     private int getSortedPosition(T object){
         int result = Collections.binarySearch(list, object, comparator);
         if (result < 0) {
@@ -175,6 +228,13 @@ public class SortedList<T> extends AbstractList<T> {
         return addAll(collection);
     }
 
+    /**
+     * Add all elements in this collection to the list.
+     * They will be sorted to maintain the sort order.
+     *
+     * @param collection the collection to add to the list.
+     * @return true if the operation succeeds.
+     */
     @Override
     public boolean addAll(Collection<? extends T> collection) {
         boolean result = list.addAll(collection);
@@ -199,11 +259,31 @@ public class SortedList<T> extends AbstractList<T> {
         return list.containsAll(collection);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * NOTE: Because this list's order changes dynamically
+     * to maintain its sort order, location positions are not
+     * guaranteed over time.
+     *
+     * @param location the location to get the element from.
+     * @return the element at that location.
+     */
     @Override
     public T get(int location) {
         return list.get(location);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * NOTE: Because this list's order changes dynamically
+     * to maintain its sort order, location positions are not
+     * guaranteed over time.
+     *
+     * @param object the object to get the position of.
+     * @return the position of that object.
+     */
     @Override
     public int indexOf(Object object) {
         return list.indexOf(object);
@@ -214,21 +294,56 @@ public class SortedList<T> extends AbstractList<T> {
         return list.isEmpty();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * NOTE: This iterator will respect the sort order
+     * of this list.
+     *
+     * @return the Iterator.
+     */
     @Override
     public Iterator<T> iterator() {
         return super.iterator();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * NOTE: Because this list's order changes dynamically
+     * to maintain its sort order, location positions are not
+     * guaranteed over time.
+     *
+     * @param object
+     * @return
+     */
     @Override
     public int lastIndexOf(Object object) {
         return list.lastIndexOf(object);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * NOTE: This iterator will respect the sort order
+     * of this list.
+     *
+     * @return the ListIterator.
+     */
     @Override
     public ListIterator<T> listIterator() {
         return super.listIterator();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * NOTE: This iterator will respect the sort order
+     * of this list.
+     *
+     * @param location the location to start the iteration at.
+     * @return the ListIterator.
+     */
     @Override
     public ListIterator<T> listIterator(int location) {
         return super.listIterator(location);
@@ -254,13 +369,23 @@ public class SortedList<T> extends AbstractList<T> {
         return list.retainAll(collection);
     }
 
+    /**
+     * Replace the object at the specified location
+     * with the provided one. This method still respects
+     * the sort order of the list, so while the object
+     * previously at the specified location will be
+     * removed, the object added will be placed in the
+     * list at the appropriate location based on the sort
+     * order.
+     *
+     * @param location the location to replace the object at.
+     * @param object the object to put into the list.
+     * @return the object that was placed into the list.
+     */
     @Override
     public T set(int location, T object) {
-        if(object != null){
-            int newPosition = getSortedPosition(object);
-            list.remove(location);
-            list.add(newPosition, object);
-        }
+        list.remove(location);
+        add(object);
         return object;
     }
 
@@ -298,149 +423,5 @@ public class SortedList<T> extends AbstractList<T> {
             return o1.toString().compareTo(o2.toString());
         }
     }
-
-    //TODO if the AbstractList iterator/list iterator works fine, remove this code
-    /**
-     * This Iterator implementation respects the structure
-     * of this class. Specifically, it ensures that the sort
-     * order is always maintained by manipulating the content
-     * of the list only through the public methods of the
-     * enclosing class.
-     *
-     * The source here almost perfectly mirrors the official
-     * OpenJDK source for this class. This is done because it
-     * needs to mirror that behavior, but cannot be simply
-     * inherited due to the need to force it to constrain
-     * to certain behaviors. Primary creative credit
-     * for this class goes to Sun, Oracle, and the OpenJDK folks.
-     */
-//    private class Itr implements Iterator<T> {
-//
-//        int cursor = 0;
-//        int lastRet = -1;
-//        int expectedModCount = modCount;
-//
-//        @Override
-//        public boolean hasNext() {
-//            return cursor < size();
-//        }
-//
-//        @Override
-//        public T next() {
-//            checkForComodification();
-//            T next = null;
-//            try{
-//                int i = cursor;
-//                next = get(i);
-//                lastRet = i;
-//                cursor = i + 1;
-//            }
-//            catch(IndexOutOfBoundsException ex){
-//                checkForComodification();
-//                throw new NoSuchElementException();
-//            }
-//            return next;
-//        }
-//
-//        @Override
-//        public void remove() {
-//            if(lastRet < 0){
-//                throw new IllegalStateException();
-//            }
-//            checkForComodification();
-//
-//            try{
-//                SortedList.this.remove(lastRet);
-//                if(lastRet < cursor){
-//                    cursor--;
-//                }
-//                lastRet = -1;
-//                expectedModCount = modCount;
-//            }
-//            catch(IndexOutOfBoundsException ex){
-//                throw new ConcurrentModificationException();
-//            }
-//        }
-//
-//        final void checkForComodification() {
-//            if (modCount != expectedModCount) {
-//                throw new ConcurrentModificationException();
-//            }
-//        }
-//
-//    }
-//
-//    //TODO document this
-//    private class ListItr extends Itr implements ListIterator<T>{
-//
-//        ListItr(int index){
-//            cursor = index;
-//        }
-//
-//        @Override
-//        public void add(T t) {
-//            checkForComodification();
-//
-//            try{
-//                int i = cursor;
-//                SortedList.this.add(i, t);
-//                lastRet = -1;
-//                cursor = i + 1;
-//                expectedModCount = modCount;
-//            }
-//            catch(IndexOutOfBoundsException ex){
-//                throw new ConcurrentModificationException();
-//            }
-//        }
-//
-//        @Override
-//        public boolean hasPrevious() {
-//            return cursor > 0;
-//        }
-//
-//        @Override
-//        public T previous() {
-//            checkForComodification();
-//            T previous = null;
-//            try{
-//                int i = cursor - 1;
-//                previous = get(i);
-//                lastRet = i;
-//                cursor = i;
-//            }
-//            catch(IndexOutOfBoundsException ex){
-//                checkForComodification();
-//                throw new NoSuchElementException();
-//            }
-//
-//            return previous;
-//        }
-//
-//        @Override
-//        public int nextIndex() {
-//            return cursor;
-//        }
-//
-//        @Override
-//        public int previousIndex() {
-//            return cursor - 1;
-//        }
-//
-//        @Override
-//        public void set(T t) {
-//            if(lastRet < 0){
-//                throw new IllegalStateException();
-//            }
-//            checkForComodification();
-//
-//            try{
-//                SortedList.this.set(lastRet, t);
-//                expectedModCount = modCount;
-//            }
-//            catch(IndexOutOfBoundsException ex){
-//                throw new ConcurrentModificationException();
-//            }
-//        }
-//    }
 
 }
