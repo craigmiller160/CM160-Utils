@@ -1,0 +1,12 @@
+# Java class files
+*.class
+
+# Mac OSX Files
+.DS_Store
+
+# Maven target directory
+target/
+
+# IntelliJ files
+*.iml
+.idea/
