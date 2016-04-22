@@ -1,5 +1,8 @@
 CM160Utils Changelog
 
+Version 1.0.2
++ Added allValues() method to MultiValueMap, to return a single collection containing all the values in all the collections of the map.
+
 Version 1.0.1
 + Changed InvocationException's inheritance to subclass ReflectiveException, instead of directly subclassing RuntimeException.
 

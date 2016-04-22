@@ -245,6 +245,22 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
         return map.values();
     }
 
+    /**
+     * Get all the values of all the collections of this
+     * map, returned in a list so that duplicates will
+     * be preserved.
+     *
+     * @return a list of all the values of all the collections.
+     */
+    public List<V> allValues(){
+        List<V> result = new ArrayList<>();
+        for(Collection<V> value : values()){
+            result.addAll(value);
+        }
+
+        return result;
+    }
+
     @Override
     public Set<Entry<K, Collection<V>>> entrySet() {
         return map.entrySet();
