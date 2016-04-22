@@ -1,0 +1,12 @@
+CM160Utils Changelog
+
+Version 1.0.1
++ Changed InvocationException's inheritance to subclass ReflectiveException, instead of directly subclassing RuntimeException.
+
+Version 1.0
++ Took all reflection utility code out of Locus Framework project and added it to this common library.
++ Took all reflection utility code out of now-abandoned ReflectionUtils project, rehabbed and cleaned it up, and added it to this common library.
++ Took repository API code from OrgBuilderAPI project and added it to this common library.
++ Took String utility methods from Locus Framework and OrgBuilderAPI and added them to this library as StringBuildingUtil and StringUtil.
++ Took LoggerCSVFormat from StockMarket project and added it to this common library.
++ Took advanced collections from Locus Framework and Contacts 5 projects and added them to this common library.

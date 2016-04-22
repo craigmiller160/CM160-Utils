@@ -17,14 +17,14 @@
 package io.craigmiller160.utils.reflect;
 
 /**
- * A subclass of RuntimeException intended for wrapping
+ * A subclass of ReflectiveException intended for wrapping
  * and handling non-reflective exceptions that occur
  * while reflectively accessing a method. Essentially
  * it's a non-checked version of Java's InvocationTargetException.
  *
  * Created by craig on 3/12/16.
  */
-public class InvocationException extends RuntimeException{
+public class InvocationException extends ReflectiveException{
 
     public InvocationException() {
     }
