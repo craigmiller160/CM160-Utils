@@ -41,7 +41,7 @@ public class RemoteInvokeTest {
         //Storing the value in a variable for easier testing
         String newValue = "NewValue";
 
-        RemoteInvoke.invokeMethod(oam, newValue);
+        RemoteInvoke.validateAndInvokeMethod(oam, newValue);
 
         assertEquals("Incorrect value for property StringField in ModelOne", modelOne.getStringField(), newValue);
     }
@@ -56,7 +56,7 @@ public class RemoteInvokeTest {
         String newValue1 = "NewValue1";
         int newValue2 = 101;
 
-        RemoteInvoke.invokeMethod(oam, newValue1, newValue2);
+        RemoteInvoke.validateAndInvokeMethod(oam, newValue1, newValue2);
 
         assertEquals("Incorrect value for property StringField in ModelOne", modelOne.getStringField(), newValue1);
         assertEquals("Incorrect value for property IntField in ModelOne", modelOne.getIntField(), newValue2);
@@ -72,7 +72,7 @@ public class RemoteInvokeTest {
         String newValue = "NewValue";
         modelOne.setStringField(newValue);
 
-        Object result = RemoteInvoke.invokeMethod(oam);
+        Object result = RemoteInvoke.validateAndInvokeMethod(oam);
 
         assertNotNull("Result of RemoteInvoke is null", result);
         assertEquals("Result type is not String", result.getClass(), String.class);
@@ -92,7 +92,7 @@ public class RemoteInvokeTest {
         modelOne.setStringField(newValue1);
         modelOne.setIntField(newValue2);
 
-        Object result1 = RemoteInvoke.invokeMethod(oam, 1);
+        Object result1 = RemoteInvoke.validateAndInvokeMethod(oam, 1);
 
         assertNotNull("Result of RemoteInvoke is null", result1);
         assertEquals("Result type is not String", result1.getClass(), String.class);

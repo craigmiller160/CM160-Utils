@@ -39,12 +39,9 @@ public class FindAndInvoke {
      * @param newParams the parameters to pass to the method.
      * @return the result of the invocation.
      * @throws ReflectiveException If unable to reflectively invoke the method.
-     * @throws InvocationException If a normal exception occurs while trying to reflectively
-     *                              invoke the method.
-     * @throws NoMethodException if the method being searched for doesn't exist.
      *
      */
-    public static Object findAndInvokeMethod(Object object, String methodSig, Object...newParams){
+    public static Object findOneAndInvokeMethod(Object object, String methodSig, Object...newParams) throws ReflectiveException{
         ObjectAndMethod oam = getMatchingMethodForSingle(object, methodSig, newParams);
         if(oam == null){
             throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
@@ -62,11 +59,8 @@ public class FindAndInvoke {
      * @param newParams the parameters to pass to the method.
      * @return the result of the invocation.
      * @throws ReflectiveException If unable to reflectively invoke the method.
-     * @throws InvocationException If a normal exception occurs while trying to reflectively
-     *                              invoke the method.
-     * @throws NoMethodException if the method being searched for doesn't exist.
      */
-    public static Object findAndInvokeMethod(Object[] objects, String methodSig, Object...newParams){
+    public static Object findOneAndInvokeMethod(Object[] objects, String methodSig, Object...newParams) throws ReflectiveException{
         ObjectAndMethod oam = getMatchingMethod(objects, methodSig, newParams);
         if(oam == null){
             throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
@@ -84,13 +78,133 @@ public class FindAndInvoke {
      * @param newParams the parameters to pass to the method.
      * @return the result of the invocation.
      * @throws ReflectiveException If unable to reflectively invoke the method.
-     * @throws InvocationException If a normal exception occurs while trying to reflectively
-     *                              invoke the method.
-     * @throws NoMethodException if the method being searched for doesn't exist.
      */
-    public static Object findAndInvokeMethod(Collection<?> objects, String methodSig, Object...newParams)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-        return findAndInvokeMethod(objects.toArray(), methodSig, newParams);
+    public static Object findOneAndInvokeMethod(Collection<?> objects, String methodSig, Object...newParams)
+            throws ReflectiveException {
+        return findOneAndInvokeMethod(objects.toArray(), methodSig, newParams);
+    }
+
+    /**
+     * Find and invoke a single method that matches the provided parameters
+     * and can be successfully invoked.
+     *
+     * @param oams the group of ObjectAndMethod objects to find a method in.
+     * @param newParams the new parameters to use to invoke
+     * @return the return value, if there is any.
+     * @throws ReflectiveException If unable to reflectively invoke the method.
+     */
+    public static Object findOneAndInvoke(Collection<ObjectAndMethod> oams, Object...newParams) throws ReflectiveException{
+        Object result = null;
+        boolean success = false;
+        for(ObjectAndMethod oam : oams){
+            if(MethodUtils.isValidInvocation(oam.getMethod(), newParams)){
+                result = RemoteInvoke.invokeMethod(oam, newParams);
+                success = true;
+                break;
+            }
+        }
+
+        if(!success){
+            throw new NoMethodException(String.format("No provided method can be invoked with the provided params. " +
+                    "Params: %s", Arrays.toString(newParams)));
+        }
+
+        return result;
+    }
+
+    /**
+     * Find any matching methods in the provided object and invoke all matches.
+     * No value will be returned, because potentially invoking more than one
+     * method there is no way to know which one to return a value from.
+     *
+     * @param object the object to find and invoke methods on.
+     * @param methodSig the signature of the method to find and invoke.
+     * @param newParams the parameters to use for the method invocation.
+     * @throws ReflectiveException if unable to find or invoke the method.
+     */
+    public static void findAllAndInvoke(Object object, String methodSig, Object...newParams) throws ReflectiveException{
+        List<ObjectAndMethod> potentialMatches = getPotentialMatchesFromSingle(methodSig, object);
+
+        if(potentialMatches == null || potentialMatches.size() == 0){
+            throw new NoMethodException(String.format("No method in object %1$s matches signature %2$s", object.getClass().getName(), methodSig));
+        }
+
+        attemptToInvokeAll(potentialMatches, newParams);
+    }
+
+    /**
+     * Find any matching methods in the provided array of objects and invoke all matches.
+     * No value will be returned, because potentially invoking more than one
+     * method there is no way to know which one to return a value from.
+     *
+     * @param objects the array of objects to find and invoke methods on.
+     * @param methodSig the signature of the method to find and invoke.
+     * @param newParams the parameters to use for the method invocation.
+     * @throws ReflectiveException if unable to find or invoke the method.
+     */
+    public static void findAllAndInvoke(Object[] objects, String methodSig, Object...newParams) throws ReflectiveException{
+        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromMultiple(objects, methodSig);
+
+        if(potentialMatches == null || potentialMatches.size() == 0){
+            throw new NoMethodException(String.format("No method in provided objects match signature %1$s.", methodSig));
+        }
+
+        attemptToInvokeAll(potentialMatches, newParams);
+    }
+
+    /**
+     * Find any matching methods in the provided collection of objects and invoke all matches.
+     * No value will be returned, because potentially invoking more than one
+     * method there is no way to know which one to return a value from.
+     *
+     * @param objects the array of objects to find and invoke methods on.
+     * @param methodSig the signature of the method to find and invoke.
+     * @param newParams the parameters to use for the method invocation.
+     * @throws ReflectiveException if unable to find or invoke the method.
+     */
+    public static void findAllAndInvoke(Collection<Object> objects, String methodSig, Object...newParams) throws ReflectiveException{
+        findAllAndInvoke(objects.toArray(), methodSig, newParams);
+    }
+
+    /**
+     * Find any matching methods in the provided collection of ObjectAndMethods and invoke all matches.
+     * No value will be returned, because potentially invoking more than one
+     * method there is no way to know which one to return a value from.
+     *
+     * @param oams the array of objects and methods to find and invoke methods on.
+     * @param newParams the parameters to use for the method invocation.
+     * @throws ReflectiveException if unable to find or invoke the method.
+     */
+    public static void findAllAndInvoke(Collection<ObjectAndMethod> oams, Object...newParams) throws ReflectiveException{
+        attemptToInvokeAll(oams, newParams);
+    }
+
+    /**
+     * Attempt to invoke all provided methods on their matching objects, using
+     * the parameters provided. If no matching methods are found, an
+     * exception will be thrown.
+     *
+     * No values are returned from the invocations, due to the fact
+     * that invoking multiple methods doesn't make clear which
+     * value should be returned.
+     *
+     * @param oams the objects and methods to attempt to invoke.
+     * @param newParams the parameters to use for the invocation.
+     * @throws NoMethodException if no matching methods are found.
+     */
+    private static void attemptToInvokeAll(Collection<ObjectAndMethod> oams, Object...newParams) throws NoMethodException{
+        boolean success = false;
+        for(ObjectAndMethod oam : oams){
+            if(MethodUtils.isValidInvocation(oam.getMethod(), newParams)){
+                RemoteInvoke.invokeMethod(oam, newParams);
+                success = true;
+            }
+        }
+
+        if(!success){
+            throw new NoMethodException(String.format("No provided method can be invoked with the provided params. " +
+                    "Params: %s", Arrays.toString(newParams)));
+        }
     }
 
 

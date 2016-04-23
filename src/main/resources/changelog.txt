@@ -1,5 +1,12 @@
 CM160Utils Changelog
 
+Version 1.1
++ Changed NoMethodException to subclass ReflectiveException, instead of directly subclasses RuntimeException.
++ Added new method to FindAndInvoke that accepts a collection of ObjectAndMethod objects.
++ Changed all FindAndInvoke public method names to findOneAndInvoke because they only invoke a single method.
++ Added new methods to FindAndInvoke to invoke multiple matching methods, but return no value.
++ Updated exception documentation for all FindAndInvoke methods.
+
 Version 1.0.2
 + Added allValues() method to MultiValueMap, to return a single collection containing all the values in all the collections of the map.
 

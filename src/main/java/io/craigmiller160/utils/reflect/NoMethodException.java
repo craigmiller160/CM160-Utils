@@ -22,7 +22,7 @@ package io.craigmiller160.utils.reflect;
  *
  * Created by craigmiller on 4/19/16.
  */
-public class NoMethodException  extends RuntimeException{
+public class NoMethodException  extends ReflectiveException{
 
     public NoMethodException() {
     }
