@@ -19,6 +19,7 @@ package io.craigmiller160.utils.collection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,10 +32,26 @@ import java.util.Set;
  */
 public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
 
+    /**
+     * The underlying map within this special map implementation.
+     */
     private Map<K,Collection<V>> map;
+
+    /**
+     * A separate list used to store all the values
+     * added to this map.
+     */
+    private Set<V> allValues;
+
+    /**
+     * An integer value for the full size of
+     * all the collections of this map.
+     */
+    private int fullSize = 0;
 
     public MultiValueMap(){
         map = new HashMap<>();
+        allValues = new HashSet<>();
     }
 
     /**
@@ -73,12 +90,13 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
      *          in the Map.
      */
     public int fullSize(){
-        Set<K> keySet = map.keySet();
-        int total = 0;
-        for(K k : keySet){
-            total += map.get(k).size();
-        }
-        return total;
+//        Set<K> keySet = map.keySet();
+//        int total = 0;
+//        for(K k : keySet){
+//            total += map.get(k).size();
+//        }
+//        return total;
+        return fullSize;
     }
 
     /**
@@ -118,14 +136,15 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
      */
     @Override
     public boolean containsValue(Object value) {
-        Set<K> keySet = map.keySet();
-        for(K k : keySet){
-            Collection<V> c = map.get(k);
-            if(c.contains(value)){
-                return true;
-            }
-        }
-        return false;
+//        Set<K> keySet = map.keySet();
+//        for(K k : keySet){
+//            Collection<V> c = map.get(k);
+//            if(c.contains(value)){
+//                return true;
+//            }
+//        }
+//        return false;
+        return allValues.contains(value);
     }
 
     /**
@@ -153,6 +172,10 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
         else{
             map.put(key, c);
         }
+
+        allValues.addAll(c);
+        fullSize += c.size();
+
         return c;
     }
 
@@ -163,13 +186,18 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
             map.put(key, values);
         }
         values.add(value);
+        allValues.add(value);
+        fullSize += 1;
         return value;
     }
 
     public V putValueInMultipleCollections(Collection<K> keys, V value){
         for(K key : keys){
             putValue(key, value);
+            fullSize += 1;
         }
+
+        allValues.add(value);
         return value;
     }
 
@@ -179,12 +207,17 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
             collection = getNewCollection();
         }
         collection.addAll(values);
+        allValues.addAll(values);
+        fullSize += values.size();
         return put(key, collection);
     }
 
     @Override
     public Collection<V> remove(Object key) {
-        return map.remove(key);
+        Collection<V> toRemove = map.remove(key);
+        allValues.removeAll(toRemove);
+        fullSize -= toRemove.size();
+        return toRemove;
     }
 
     /**
@@ -207,6 +240,10 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
             }
         }
 
+        //TODO left off here, this method needs to be adjusted so that it can determine if the collection does in fact remove a value in the above iteration
+
+        allValues.remove(value);
+
         for(K k : keysToRemove){
             remove(k);
         }
@@ -220,8 +257,10 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
         Collection<V> template = getNewCollection();
         for(K k : keySet){
             Collection c = m.get(k);
+            //TODO maybe isAssignableFrom??? Or maybe this part doesn't even matter, since ultimately an addAll is done
             if(c.getClass().equals(template.getClass())){
                 put(k, c);
+                allValues.addAll(c);
             }
             else{
                 throw new IllegalArgumentException("Map must maintain the same type of Collection as its value. " +
@@ -233,6 +272,7 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
     @Override
     public void clear() {
         map.clear();
+        allValues.clear();
     }
 
     @Override
@@ -252,13 +292,13 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
      *
      * @return a list of all the values of all the collections.
      */
-    public List<V> allValues(){
-        List<V> result = new ArrayList<>();
-        for(Collection<V> value : values()){
-            result.addAll(value);
-        }
+    public Set<V> allValues(){
+//        List<V> result = new ArrayList<>();
+//        for(Collection<V> value : values()){
+//            result.addAll(value);
+//        }
 
-        return result;
+        return allValues;
     }
 
     @Override
