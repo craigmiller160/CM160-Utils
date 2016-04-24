@@ -1,5 +1,8 @@
 CM160Utils Changelog
 
+Version 1.1.1
++ Revamped internals of MultiValueMap to improve performance on key operations.
+
 Version 1.1
 + Changed NoMethodException to subclass ReflectiveException, instead of directly subclasses RuntimeException.
 + Added new method to FindAndInvoke that accepts a collection of ObjectAndMethod objects.

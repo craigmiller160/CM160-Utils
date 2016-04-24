@@ -194,10 +194,8 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
     public V putValueInMultipleCollections(Collection<K> keys, V value){
         for(K key : keys){
             putValue(key, value);
-            fullSize += 1;
         }
 
-        allValues.add(value);
         return value;
     }
 
@@ -207,8 +205,6 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
             collection = getNewCollection();
         }
         collection.addAll(values);
-        allValues.addAll(values);
-        fullSize += values.size();
         return put(key, collection);
     }
 
@@ -233,14 +229,15 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
         for(K k : keySet){
             Collection<V> c = map.get(k);
             if(c != null){
-                c.remove(value);
+                if(c.remove(value)){
+                    fullSize -= 1;
+                }
+
                 if(c.size() == 0){
                     keysToRemove.add(k);
                 }
             }
         }
-
-        //TODO left off here, this method needs to be adjusted so that it can determine if the collection does in fact remove a value in the above iteration
 
         allValues.remove(value);
 
@@ -257,14 +254,8 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
         Collection<V> template = getNewCollection();
         for(K k : keySet){
             Collection c = m.get(k);
-            //TODO maybe isAssignableFrom??? Or maybe this part doesn't even matter, since ultimately an addAll is done
-            if(c.getClass().equals(template.getClass())){
-                put(k, c);
-                allValues.addAll(c);
-            }
-            else{
-                throw new IllegalArgumentException("Map must maintain the same type of Collection as its value. " +
-                        "Expected: " + template.getClass().getName() + " Found: " + c.getClass().getName());
+            if(c != null){
+                put(k,c);
             }
         }
     }
@@ -273,6 +264,7 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
     public void clear() {
         map.clear();
         allValues.clear();
+        fullSize = 0;
     }
 
     @Override
