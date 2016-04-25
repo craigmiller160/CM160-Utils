@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,9 +50,23 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
      */
     private int fullSize = 0;
 
+    /**
+     * Standard constructor for MultiValueMap.
+     */
     public MultiValueMap(){
-        map = new HashMap<>();
-        allValues = new HashSet<>();
+        this.map = new HashMap<>();
+        this.allValues = new HashSet<>();
+    }
+
+    /**
+     * Copy constructor for MultiValueMap.
+     *
+     * @param map the MultiValueMap to copy the values into this one.
+     */
+    public MultiValueMap(MultiValueMap<K,V> map){
+        this.map = new HashMap<>();
+        this.allValues = new HashSet<>();
+        putAll(map);
     }
 
     /**
@@ -90,12 +105,6 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
      *          in the Map.
      */
     public int fullSize(){
-//        Set<K> keySet = map.keySet();
-//        int total = 0;
-//        for(K k : keySet){
-//            total += map.get(k).size();
-//        }
-//        return total;
         return fullSize;
     }
 
@@ -136,14 +145,6 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
      */
     @Override
     public boolean containsValue(Object value) {
-//        Set<K> keySet = map.keySet();
-//        for(K k : keySet){
-//            Collection<V> c = map.get(k);
-//            if(c.contains(value)){
-//                return true;
-//            }
-//        }
-//        return false;
         return allValues.contains(value);
     }
 
@@ -224,26 +225,19 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
      * @return the value that has been removed.
      */
     public V removeValue(V value){
-        Set<K> keySet = keySet();
-        List<K> keysToRemove = new ArrayList<>();
-        for(K k : keySet){
-            Collection<V> c = map.get(k);
-            if(c != null){
-                if(c.remove(value)){
-                    fullSize -= 1;
-                }
+        Iterator<Entry<K,Collection<V>>> it = map.entrySet().iterator();
+        while(it.hasNext()){
+            Collection<V> values = it.next().getValue();
+            if(values.remove(value)){
+                fullSize -= 1;
+            }
 
-                if(c.size() == 0){
-                    keysToRemove.add(k);
-                }
+            if(values.size() == 0){
+                it.remove();
             }
         }
 
         allValues.remove(value);
-
-        for(K k : keysToRemove){
-            remove(k);
-        }
 
         return value;
     }
@@ -285,11 +279,6 @@ public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
      * @return a list of all the values of all the collections.
      */
     public Set<V> allValues(){
-//        List<V> result = new ArrayList<>();
-//        for(Collection<V> value : values()){
-//            result.addAll(value);
-//        }
-
         return allValues;
     }
 

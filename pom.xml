@@ -49,7 +49,7 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
             <version>${log4j.version}</version>
-            <optional>true</optional> <!-- TODO see if this works for replacing this logger in client apps -->
+            <optional>true</optional>
             <scope>test</scope>
         </dependency>
         <dependency> <!-- Log4J SLF4J Binding -->
