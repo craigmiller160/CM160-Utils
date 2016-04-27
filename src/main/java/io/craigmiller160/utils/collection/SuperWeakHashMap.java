@@ -50,10 +50,10 @@ public class SuperWeakHashMap<K,V> implements Map<K,V> {
         Iterator<Map.Entry<WeakReference<K>,WeakReference<V>>> it = internalMap.entrySet().iterator();
         while(it.hasNext()){
             Map.Entry<WeakReference<K>,WeakReference<V>> entry = it.next();
-            if(entry.getKey().get() == null){
+            if(entry.getKey() == null || entry.getKey().get() == null){
                 it.remove();
             }
-            else if(entry.getValue().get() == null){
+            else if(entry.getValue() == null || entry.getValue().get() == null){
                 it.remove();
             }
             else{
@@ -99,7 +99,8 @@ public class SuperWeakHashMap<K,V> implements Map<K,V> {
     @Override
     public V remove(Object key) {
         //Do this directly, because it's not worth the iteration for a removal
-        return internalMap.remove(key).get();
+        WeakReference<V> result = internalMap.remove(key);
+        return result != null ? result.get() : null;
     }
 
     @Override
