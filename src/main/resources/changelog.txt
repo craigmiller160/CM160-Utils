@@ -1,7 +1,7 @@
 CM160Utils Changelog
 
 Version 1.2.1
-+ Fixed NPE in SuperWeakHashMap
++ Fixed bugs in SuperWeakHashMap
 
 Version 1.2
 + Rewrote removeAll() method of MultiValueMap to a much better implementation. Also added a copy constructor.

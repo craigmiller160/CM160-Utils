@@ -16,6 +16,7 @@
 
 package io.craigmiller160.utils.collection;
 
+import io.craigmiller160.utils.sample.Val;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,11 +37,11 @@ import static org.junit.Assert.assertTrue;
  */
 public class SuperWeakHashMapTest {
 
-    private SuperWeakHashMap<BigDecimal, BigDecimal> map;
-    private BigDecimal key1;
-    private BigDecimal key2;
-    private BigDecimal value1;
-    private BigDecimal value2;
+    private SuperWeakHashMap<Val, Val> map;
+    private Val key1;
+    private Val key2;
+    private Val value1;
+    private Val value2;
 
     /**
      * Run before each test.
@@ -49,10 +50,10 @@ public class SuperWeakHashMapTest {
     public void before(){
         map = new SuperWeakHashMap<>();
 
-        key1 = new BigDecimal(33.3);
-        value1 = new BigDecimal(44.4);
-        key2 = new BigDecimal(55.5);
-        value2 = new BigDecimal(66.6);
+        key1 = new Val("Key1");
+        value1 = new Val("Value1");
+        key2 = new Val("Key2");
+        value2 = new Val("Value2");
 
         map.put(key1, value1);
         map.put(key2, value2);
@@ -104,7 +105,7 @@ public class SuperWeakHashMapTest {
         //Test the initial size to catch any weird early errors
         assertEquals("Map size after adding two entries is wrong", 2, map.size());
 
-        Set<BigDecimal> keySet = map.keySet();
+        Set<Val> keySet = map.keySet();
 
         //Null a key, which shouldn't change the map because the keySet exists
         key2 = null;
@@ -117,6 +118,16 @@ public class SuperWeakHashMapTest {
         Runtime.getRuntime().gc();
 
         assertEquals("Map size should have changed now", 1, map.size());
+    }
+
+    /**
+     * Test removing an item from the map
+     */
+    @Test
+    public void testRemove(){
+        map.remove(key1);
+
+        assertEquals("Map size after removal is wrong", 1, map.size());
     }
 
 }

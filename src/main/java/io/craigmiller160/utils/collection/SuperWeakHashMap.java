@@ -33,7 +33,7 @@ import java.util.Set;
  */
 public class SuperWeakHashMap<K,V> implements Map<K,V> {
 
-    private final Map<WeakReference<K>, WeakReference<V>> internalMap = new HashMap<>();
+    private final Map<ComparableWeakReference<K>, ComparableWeakReference<V>> internalMap = new HashMap<>();
 
     public SuperWeakHashMap(){
 
@@ -47,9 +47,9 @@ public class SuperWeakHashMap<K,V> implements Map<K,V> {
      */
     private Map<K,V> clearStaleAndGetInternalMap(){
         Map<K,V> result = new HashMap<>();
-        Iterator<Map.Entry<WeakReference<K>,WeakReference<V>>> it = internalMap.entrySet().iterator();
+        Iterator<Map.Entry<ComparableWeakReference<K>,ComparableWeakReference<V>>> it = internalMap.entrySet().iterator();
         while(it.hasNext()){
-            Map.Entry<WeakReference<K>,WeakReference<V>> entry = it.next();
+            Map.Entry<ComparableWeakReference<K>,ComparableWeakReference<V>> entry = it.next();
             if(entry.getKey() == null || entry.getKey().get() == null){
                 it.remove();
             }
@@ -92,14 +92,22 @@ public class SuperWeakHashMap<K,V> implements Map<K,V> {
     @Override
     public V put(K key, V value) {
         //Do this directly, because the indirect way won't work
-        internalMap.put(new WeakReference<>(key), new WeakReference<>(value));
+        internalMap.put(new ComparableWeakReference<>(key), new ComparableWeakReference<>(value));
         return value;
     }
 
     @Override
     public V remove(Object key) {
         //Do this directly, because it's not worth the iteration for a removal
-        WeakReference<V> result = internalMap.remove(key);
+        ComparableWeakReference<V> result = null;
+        //Test for just WeakReference, because both WeakReference and ComparableWeakReference should have the same behavior here.
+        if(key instanceof WeakReference){
+            result = internalMap.remove(key);
+        }
+        else{
+            result = internalMap.remove(new ComparableWeakReference(key));
+        }
+
         return result != null ? result.get() : null;
     }
 
