@@ -24,39 +24,29 @@ import java.lang.reflect.Method;
  *
  * Created by craigmiller on 3/19/16.
  */
-public abstract class ReflectiveMethodHolder<T> {
+public abstract class ReflectiveMethodHolder<T> extends ReflectiveHolder<T,Method> implements ParameterizedHolder{
 
-    private final T source;
-    private final Method method;
     private final Class<?>[] paramTypes;
 
     protected ReflectiveMethodHolder(T source, Method method){
-        this.source = source;
-        this.method = method;
+        super(source, method);
         this.paramTypes = method.getParameterTypes();
     }
 
-    public T getSource(){
-        return source;
-    }
-
-    public Method getMethod(){
-        return method;
-    }
-
-    public Class<?>[] getMethodParamTypes(){
+    @Override
+    public Class<?>[] getParamTypes(){
         return paramTypes;
     }
 
-    public int getMethodParamCount(){
+    @Override
+    public int getParamCount(){
         return paramTypes.length;
     }
 
-    public boolean isMethodVarArgs(){
-        return method.isVarArgs();
+    @Override
+    public boolean isVarArgs(){
+        return getReflectiveComponent().isVarArgs();
     }
-
-    public abstract Class<?> getSourceType();
 
     @Override
     public boolean equals(Object o) {
@@ -65,15 +55,15 @@ public abstract class ReflectiveMethodHolder<T> {
 
         ReflectiveMethodHolder<?> that = (ReflectiveMethodHolder<?>) o;
 
-        if (source != null ? !source.equals(that.source) : that.source != null) return false;
-        return method != null ? method.equals(that.method) : that.method == null;
+        if (getSource() != null ? !getSource().equals(that.getSource()) : that.getSource() != null) return false;
+        return getReflectiveComponent() != null ? getReflectiveComponent().equals(that.getReflectiveComponent()) : that.getReflectiveComponent() == null;
 
     }
 
     @Override
     public int hashCode() {
-        int result = source != null ? source.hashCode() : 0;
-        result = 31 * result + (method != null ? method.hashCode() : 0);
+        int result = getSource() != null ? getSource().hashCode() : 0;
+        result = 31 * result + (getReflectiveComponent() != null ? getReflectiveComponent().hashCode() : 0);
         return result;
     }
 }

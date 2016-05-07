@@ -16,8 +16,10 @@
 
 package io.craigmiller160.utils.reflect;
 
+import io.craigmiller160.utils.sample.Custom1;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 /**
@@ -31,7 +33,33 @@ public class ObjectCreatorTest {
     public void testInstantiateObject(){
         StringBuilder builder = ObjectCreator.instantiateClass(StringBuilder.class);
 
-        assertNotNull(builder);
+        assertNotNull("Object created is null", builder);
+    }
+
+    @Test
+    public void testInstantiateWithSingleParam(){
+        Custom1 custom1 = ObjectCreator.instantiateClassWithParams(Custom1.class, "Foo");
+
+        assertNotNull("Custom1 object is null", custom1);
+        assertEquals("Custom1 string field has wrong value", "Foo", custom1.getString());
+    }
+
+    @Test
+    public void testInstantiateWithEmptyVarargs(){
+        Custom1 custom1 = ObjectCreator.instantiateClassWithParams(Custom1.class, true);
+
+        assertNotNull("Custom1 object is null", custom1);
+        assertEquals("Custom1 boolean field has wrong value", true, custom1.getBool());
+    }
+
+    @Test
+    public void testInstantiateWithVarargs(){
+        Custom1 custom1 = ObjectCreator.instantiateClassWithParams(Custom1.class, true, 1, 2);
+
+        assertNotNull("Custom1 object is null", custom1);
+        assertEquals("Custom1 boolean field has wrong value", true, custom1.getBool());
+        assertEquals("Custom1 one field has wrong value", 1, custom1.getOne());
+        assertEquals("Custom1 two field has wrong value", 2, custom1.getTwo());
     }
 
 }

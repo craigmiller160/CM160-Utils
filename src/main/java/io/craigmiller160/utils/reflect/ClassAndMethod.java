@@ -34,13 +34,19 @@ public class ClassAndMethod extends ReflectiveMethodHolder<Class<?>> {
     }
 
     public ClassAndMethod(ClassAndMethod cam){
-        super(cam.getSource(), cam.getMethod());
+        super(cam.getSource(), cam.getReflectiveComponent());
     }
 
     public boolean isAssignableFrom(Class<?> clazz){
         return getSource().isAssignableFrom(clazz);
     }
 
+    /**
+     * This method is somewhat redundant for this class,
+     * since the source is already the source type.
+     *
+     * @return the class type of the source.
+     */
     @Override
     public Class<?> getSourceType(){
         return getSource();
@@ -49,7 +55,7 @@ public class ClassAndMethod extends ReflectiveMethodHolder<Class<?>> {
     @Override
     public String toString(){
         String className = getSource().getName();
-        String methodName = getMethod().getName();
+        String methodName = getReflectiveComponent().getName();
         String[] paramTypeNames = getParamTypeNames();
 
         StringBuilder builder = new StringBuilder()
@@ -70,9 +76,9 @@ public class ClassAndMethod extends ReflectiveMethodHolder<Class<?>> {
     }
 
     private String[] getParamTypeNames(){
-        String[] paramTypeNames = new String[getMethodParamTypes().length];
+        String[] paramTypeNames = new String[getParamTypes().length];
         for(int i = 0; i < paramTypeNames.length; i++){
-            paramTypeNames[i] = getMethodParamTypes()[i].getName();
+            paramTypeNames[i] = getParamTypes()[i].getName();
         }
         return paramTypeNames;
     }

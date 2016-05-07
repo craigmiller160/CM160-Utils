@@ -16,44 +16,65 @@
 
 package io.craigmiller160.utils.reflect;
 
-import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
 
 /**
- * A special container class for a Method and a single
- * instance of the Class it is from. This is a helper
- * class for parsing methods for a reflective invocation.
- * It includes several methods to provide information
- * about the Method, and has the Object as well so,
- * after the parsing is done, the method can be quickly
- * invoked on its owning object.
- *
- * Created by Craig on 2/14/2016.
+ * Created by craig on 5/7/16.
  */
-public class ObjectAndMethod extends ReflectiveMethodHolder<Object>{
+public class ObjectAndConstructor extends ReflectiveHolder<Object,Constructor> implements ParameterizedHolder{
 
-    public ObjectAndMethod(Object obj, Method m){
-        super(obj, m);
-    }
-
-    public ObjectAndMethod(ObjectAndMethod oam){
-        this(oam.getSource(), oam.getReflectiveComponent());
+    public ObjectAndConstructor(Object object, Constructor constructor){
+        super(object, constructor);
     }
 
     @Override
-    public Class<?> getSourceType(){
+    public Class<?> getSourceType() {
         return getSource().getClass();
+    }
+
+    @Override
+    public Class<?>[] getParamTypes() {
+        return getReflectiveComponent().getParameterTypes();
+    }
+
+    @Override
+    public int getParamCount() {
+        return getReflectiveComponent().getParameterTypes().length;
+    }
+
+    @Override
+    public boolean isVarArgs() {
+        return getReflectiveComponent().isVarArgs();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ObjectAndConstructor that = (ObjectAndConstructor) o;
+
+        if (getSource() != null ? !getSource().equals(that.getSource()) : that.getSource() != null) return false;
+        return getReflectiveComponent() != null ? getReflectiveComponent().equals(that.getReflectiveComponent()) : that.getReflectiveComponent() == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getSource() != null ? getSource().hashCode() : 0;
+        result = 31 * result + (getReflectiveComponent() != null ? getReflectiveComponent().hashCode() : 0);
+        return result;
     }
 
     @Override
     public String toString(){
         String className = getSource().getClass().getName();
-        String methodName = getReflectiveComponent().getName();
         String[] paramTypeNames = getParamTypeNames();
 
         StringBuilder builder = new StringBuilder()
                 .append(className)
                 .append(".")
-                .append(methodName)
+                .append("<init>")
                 .append("(");
 
         for(int i = 0; i < paramTypeNames.length; i++){
@@ -74,5 +95,4 @@ public class ObjectAndMethod extends ReflectiveMethodHolder<Object>{
         }
         return paramTypeNames;
     }
-
 }

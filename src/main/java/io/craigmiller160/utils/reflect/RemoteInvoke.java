@@ -47,7 +47,7 @@ public class RemoteInvoke {
      */
     public static Object validateAndInvokeMethod(ObjectAndMethod oam, Object...params) throws ReflectiveException {
         Object result = null;
-        if(MethodUtils.isValidInvocation(oam.getMethod(), params)){
+        if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), params)){
             result = invokeMethod(oam, params);
         }
         else{
@@ -60,8 +60,8 @@ public class RemoteInvoke {
                 builder.append("]");
             }
 
-            throw new ReflectiveException("Parameters provided for method " + oam.getMethod().getName() + " do not match what is expected.\n" +
-                    "   Expected: " + Arrays.toString(oam.getMethod().getParameterTypes()) + " | Actual: " + builder.toString());
+            throw new ReflectiveException("Parameters provided for method " + oam.getReflectiveComponent().getName() + " do not match what is expected.\n" +
+                    "   Expected: " + Arrays.toString(oam.getReflectiveComponent().getParameterTypes()) + " | Actual: " + builder.toString());
         }
 
         return result;
@@ -81,19 +81,19 @@ public class RemoteInvoke {
      */
     public static Object invokeMethod(ObjectAndMethod oam, Object...params) throws ReflectiveException{
         Object result = null;
-        if(oam.isMethodVarArgs()){
-            params = MethodUtils.convertParamsForVarArgsMethod(oam.getMethod(), params);
+        if(oam.isVarArgs()){
+            params = MethodUtils.convertParamsForVarArgsMethod(oam.getReflectiveComponent(), params);
         }
 
         try{
-            result = oam.getMethod().invoke(oam.getSource(), params);
-            logger.trace("Successfully invoked method. Method: {} | Params: {}", oam.getMethod(), Arrays.toString(params));
+            result = oam.getReflectiveComponent().invoke(oam.getSource(), params);
+            logger.trace("Successfully invoked method. Method: {} | Params: {}", oam.getReflectiveComponent(), Arrays.toString(params));
         }
         catch(InvocationTargetException ex){
             ExceptionHandler.parseAndRethrowException(ex);
         }
         catch(ReflectiveOperationException ex){
-            throw new ReflectiveException("Unable to reflectively invoke method " + oam.getMethod().getName() +
+            throw new ReflectiveException("Unable to reflectively invoke method " + oam.getReflectiveComponent().getName() +
                     " on " + oam.getSource().getClass().getName(), ex);
         }
 

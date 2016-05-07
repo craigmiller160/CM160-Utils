@@ -31,11 +31,10 @@ public class ParamUtils {
 
     /**
      * A special map for comparing primitive types to wrapper types.
-     * Its keys are primitive class types, and its values are wrapper
-     * class types. Each key-value pair is obviously matched by being
-     * the same core type, for example, int & Integer.
+     * This map uses the primitive type as the key, and returns its
+     * wrapper type.
      */
-    private static final Map<Class<?>,Class<?>> primitiveWrapperMap = new HashMap<Class<?>,Class<?>>(){{
+    private static final Map<Class<?>,Class<?>> primitiveToWrapperMap = new HashMap<Class<?>,Class<?>>(){{
         put(int.class, Integer.class);
         put(float.class, Float.class);
         put(double.class, Double.class);
@@ -44,6 +43,22 @@ public class ParamUtils {
         put(long.class, Long.class);
         put(boolean.class, Boolean.class);
         put(char.class, Character.class);
+    }};
+
+    /**
+     * A special map for comparing primitive types to wrapper types.
+     * This map uses the wrapper type as the key, and returns its
+     * primitive type.
+     */
+    private static final Map<Class<?>,Class<?>> wrapperToPrimitiveMap = new HashMap<Class<?>,Class<?>>(){{
+        put(Integer.class, int.class);
+        put(Float.class, float.class);
+        put(Double.class, double.class);
+        put(Short.class, short.class);
+        put(Byte.class, byte.class);
+        put(Long.class, long.class);
+        put(Boolean.class, boolean.class);
+        put(Character.class, char.class);
     }};
 
     /**
@@ -367,12 +382,17 @@ public class ParamUtils {
             }
         }
         else if(clazz1.isPrimitive()){
-            Class<?> matchingWrapper = primitiveWrapperMap.get(clazz1);
-            result = matchingWrapper.equals(clazz2);
+            Class<?> clazz1AsWrapper = primitiveToWrapperMap.get(clazz1);
+            Class<?> clazz2AsPrimitive = wrapperToPrimitiveMap.get(clazz2);
+
+            result = clazz1.isAssignableFrom(clazz2) || clazz1AsWrapper.isAssignableFrom(clazz2) ||
+                    primitiveAssignableMap.get(clazz1).contains(clazz2AsPrimitive);
         }
         else if(clazz2.isPrimitive()){
-            Class<?> matchingWrapper = primitiveWrapperMap.get(clazz2);
-            result = matchingWrapper.equals(clazz1);
+            Class<?> clazz2AsWrapper = primitiveToWrapperMap.get(clazz2);
+            Class<?> clazz1AsPrimitive = wrapperToPrimitiveMap.get(clazz1);
+            result = clazz1.isAssignableFrom(clazz2) || clazz1.isAssignableFrom(clazz2AsWrapper) ||
+                    primitiveAssignableMap.get(clazz1AsPrimitive).contains(clazz2);
         }
 
         return result;

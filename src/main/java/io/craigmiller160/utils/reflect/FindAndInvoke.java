@@ -16,7 +16,7 @@
 
 package io.craigmiller160.utils.reflect;
 
-import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,14 +41,15 @@ public class FindAndInvoke {
      * @throws ReflectiveException If unable to reflectively invoke the method.
      *
      */
-    public static Object findOneAndInvokeMethod(Object object, String methodSig, Object...newParams) throws ReflectiveException{
-        ObjectAndMethod oam = getMatchingMethodForSingle(object, methodSig, newParams);
-        if(oam == null){
-            throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
-        }
-
-        return RemoteInvoke.invokeMethod(oam, newParams);
-    }
+    //TODO removing the single object methods because of ambiguous method calls. In the future, maybe find a way to restore this
+//    public static Object findInvokeOneMethod(Object object, String methodSig, Object... newParams) throws ReflectiveException{
+//        ObjectAndMethod oam = getMatchingMethodForSingle(object, methodSig, newParams);
+//        if(oam == null){
+//            throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
+//        }
+//
+//        return RemoteInvoke.invokeMethod(oam, newParams);
+//    }
 
     /**
      * Find and invoke the method on a single matching object, identified from the
@@ -60,7 +61,7 @@ public class FindAndInvoke {
      * @return the result of the invocation.
      * @throws ReflectiveException If unable to reflectively invoke the method.
      */
-    public static Object findOneAndInvokeMethod(Object[] objects, String methodSig, Object...newParams) throws ReflectiveException{
+    public static Object findInvokeOneMethod(String methodSig, Object[] objects, Object... newParams) throws ReflectiveException{
         ObjectAndMethod oam = getMatchingMethod(objects, methodSig, newParams);
         if(oam == null){
             throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
@@ -79,9 +80,9 @@ public class FindAndInvoke {
      * @return the result of the invocation.
      * @throws ReflectiveException If unable to reflectively invoke the method.
      */
-    public static Object findOneAndInvokeMethod(Collection<?> objects, String methodSig, Object...newParams)
+    public static Object findInvokeOneMethod(String methodSig, Collection<?> objects, Object... newParams)
             throws ReflectiveException {
-        return findOneAndInvokeMethod(objects.toArray(), methodSig, newParams);
+        return findInvokeOneMethod(methodSig, objects.toArray(), newParams);
     }
 
     /**
@@ -93,11 +94,11 @@ public class FindAndInvoke {
      * @return the return value, if there is any.
      * @throws ReflectiveException If unable to reflectively invoke the method.
      */
-    public static Object findOneAndInvoke(Collection<ObjectAndMethod> oams, Object...newParams) throws ReflectiveException{
+    public static Object findInvokeOneMethod(Collection<ObjectAndMethod> oams, Object... newParams) throws ReflectiveException{
         Object result = null;
         boolean success = false;
         for(ObjectAndMethod oam : oams){
-            if(MethodUtils.isValidInvocation(oam.getMethod(), newParams)){
+            if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), newParams)){
                 result = RemoteInvoke.invokeMethod(oam, newParams);
                 success = true;
                 break;
@@ -122,15 +123,16 @@ public class FindAndInvoke {
      * @param newParams the parameters to use for the method invocation.
      * @throws ReflectiveException if unable to find or invoke the method.
      */
-    public static void findAllAndInvoke(Object object, String methodSig, Object...newParams) throws ReflectiveException{
-        List<ObjectAndMethod> potentialMatches = getPotentialMatchesFromSingle(methodSig, object);
-
-        if(potentialMatches == null || potentialMatches.size() == 0){
-            throw new NoMethodException(String.format("No method in object %1$s matches signature %2$s", object.getClass().getName(), methodSig));
-        }
-
-        attemptToInvokeAll(potentialMatches, newParams);
-    }
+    //TODO removing the single object methods because of ambiguous method calls. In the future, maybe find a way to restore this
+//    public static void findInvokeAllMethods(Object object, String methodSig, Object... newParams) throws ReflectiveException{
+//        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromSingle(methodSig, object);
+//
+//        if(potentialMatches == null || potentialMatches.size() == 0){
+//            throw new NoMethodException(String.format("No method in object %1$s matches signature %2$s", object.getClass().getName(), methodSig));
+//        }
+//
+//        attemptToInvokeAllMethods(potentialMatches, newParams);
+//    }
 
     /**
      * Find any matching methods in the provided array of objects and invoke all matches.
@@ -142,14 +144,14 @@ public class FindAndInvoke {
      * @param newParams the parameters to use for the method invocation.
      * @throws ReflectiveException if unable to find or invoke the method.
      */
-    public static void findAllAndInvoke(Object[] objects, String methodSig, Object...newParams) throws ReflectiveException{
+    public static void findInvokeAllMethods(String methodSig, Object[] objects, Object... newParams) throws ReflectiveException{
         List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromMultiple(objects, methodSig);
 
         if(potentialMatches == null || potentialMatches.size() == 0){
             throw new NoMethodException(String.format("No method in provided objects match signature %1$s.", methodSig));
         }
 
-        attemptToInvokeAll(potentialMatches, newParams);
+        attemptToInvokeAllMethods(potentialMatches, newParams);
     }
 
     /**
@@ -162,8 +164,8 @@ public class FindAndInvoke {
      * @param newParams the parameters to use for the method invocation.
      * @throws ReflectiveException if unable to find or invoke the method.
      */
-    public static void findAllAndInvoke(Collection<Object> objects, String methodSig, Object...newParams) throws ReflectiveException{
-        findAllAndInvoke(objects.toArray(), methodSig, newParams);
+    public static void findInvokeAllMethods(String methodSig, Collection<Object> objects, Object... newParams) throws ReflectiveException{
+        findInvokeAllMethods(methodSig, objects.toArray(), newParams);
     }
 
     /**
@@ -175,8 +177,8 @@ public class FindAndInvoke {
      * @param newParams the parameters to use for the method invocation.
      * @throws ReflectiveException if unable to find or invoke the method.
      */
-    public static void findAllAndInvoke(Collection<ObjectAndMethod> oams, Object...newParams) throws ReflectiveException{
-        attemptToInvokeAll(oams, newParams);
+    public static void findInvokeAllMethods(Collection<ObjectAndMethod> oams, Object... newParams) throws ReflectiveException{
+        attemptToInvokeAllMethods(oams, newParams);
     }
 
     /**
@@ -192,10 +194,10 @@ public class FindAndInvoke {
      * @param newParams the parameters to use for the invocation.
      * @throws NoMethodException if no matching methods are found.
      */
-    private static void attemptToInvokeAll(Collection<ObjectAndMethod> oams, Object...newParams) throws NoMethodException{
+    private static void attemptToInvokeAllMethods(Collection<ObjectAndMethod> oams, Object... newParams) throws NoMethodException{
         boolean success = false;
         for(ObjectAndMethod oam : oams){
-            if(MethodUtils.isValidInvocation(oam.getMethod(), newParams)){
+            if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), newParams)){
                 RemoteInvoke.invokeMethod(oam, newParams);
                 success = true;
             }
@@ -212,7 +214,7 @@ public class FindAndInvoke {
         List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromMultiple(objects, methodSig);
 
         for(ObjectAndMethod oam : potentialMatches){
-            if(MethodUtils.isValidInvocation(oam.getMethod(), newParams)){
+            if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), newParams)){
                 return oam;
             }
         }
@@ -220,10 +222,10 @@ public class FindAndInvoke {
     }
 
     private static ObjectAndMethod getMatchingMethodForSingle(Object object, String methodSig, Object...newParams) {
-        List<ObjectAndMethod> potentialMatches = getPotentialMatchesFromSingle(methodSig, object);
+        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromSingle(methodSig, object);
 
         for(ObjectAndMethod oam : potentialMatches){
-            if(MethodUtils.isValidInvocation(oam.getMethod(), newParams)){
+            if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), newParams)){
                 return oam;
             }
         }
@@ -246,7 +248,7 @@ public class FindAndInvoke {
     private static List<ObjectAndMethod> getPotentialMatchingMethodsFromMultiple(Object[] objects, String methodSig) {
         List<ObjectAndMethod> matchingMethods = new ArrayList<>();
         for(Object obj : objects){
-            matchingMethods.addAll(getPotentialMatchesFromSingle(methodSig, obj));
+            matchingMethods.addAll(getPotentialMatchingMethodsFromSingle(methodSig, obj));
         }
 
         //If no matches are found, throw an exception
@@ -270,7 +272,7 @@ public class FindAndInvoke {
      * @return a list of any potential matches found, or an empty
      *          list if none are found.
      */
-    private static List<ObjectAndMethod> getPotentialMatchesFromSingle(String methodSig, Object obj){
+    private static List<ObjectAndMethod> getPotentialMatchingMethodsFromSingle(String methodSig, Object obj){
         List<ObjectAndMethod> matches = new ArrayList<>();
         Method[] methods = obj.getClass().getMethods();
         for(Method m : methods){

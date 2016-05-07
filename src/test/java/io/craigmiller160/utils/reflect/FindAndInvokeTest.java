@@ -38,7 +38,7 @@ public class FindAndInvokeTest {
     @Test
     public void testFindAndInvoke() throws Exception {
         Object[] objects = getObjects();
-        Object result = FindAndInvoke.findOneAndInvokeMethod(objects, "method1", "One", "Two");
+        Object result = FindAndInvoke.findInvokeOneMethod("method1", objects, "One", "Two");
         assertNotNull("No result returned", result);
         assertEquals("Result wrong type", String.class, result.getClass());
         assertEquals("Result value is wrong", "One Two", result);
@@ -53,7 +53,7 @@ public class FindAndInvokeTest {
     @Test
     public void testFindAndInvokeWithOAM() throws Exception{
         Collection<ObjectAndMethod> oams = getOams();
-        Object result = FindAndInvoke.findOneAndInvoke(oams, "One", 2);
+        Object result = FindAndInvoke.findInvokeOneMethod(oams, "One", 2);
         assertNotNull("No result returned", result);
         assertEquals("Result wrong type", String.class, result.getClass());
         assertEquals("Result value is wrong", "One 2", result);
@@ -73,7 +73,7 @@ public class FindAndInvokeTest {
             ((ParentTestClass) o).setTc3(tc3);
         }
 
-        FindAndInvoke.findAllAndInvoke(objects, "method3", "One");
+        FindAndInvoke.findInvokeAllMethods("method3", objects, "One");
 
         assertTrue("TestClass1 method wasn't invoked", tc3.getTc1Success());
         assertTrue("TestClass2 method wasn't invoked", tc3.getTc2Success());

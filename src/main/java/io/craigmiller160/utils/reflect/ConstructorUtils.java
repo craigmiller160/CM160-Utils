@@ -1,0 +1,73 @@
+/*
+ * Copyright 2016 Craig Miller
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
+package io.craigmiller160.utils.reflect;
+
+import java.lang.reflect.Constructor;
+import java.util.Arrays;
+
+/**
+ * Created by craig on 5/5/16.
+ */
+public class ConstructorUtils {
+
+    public static Object[] convertParamsForVarArgsConstructor(Constructor<?> constructor, Object... newParams){
+        if(!constructor.isVarArgs()){
+            return newParams;
+        }
+
+        return ParamUtils.convertParamsForVarArgs(constructor.getParameterTypes(), newParams);
+    }
+
+    public static boolean isValidInvocation(Constructor<?> constructor, Object...newParams){
+        return ParamUtils.isValidInvocation(constructor.getParameterTypes(), constructor.isVarArgs(), newParams);
+    }
+
+    public static Constructor<?> findConstructor(Class<?> type, Object...params){
+        Constructor result = null;
+        Constructor<?>[] constructors = type.getConstructors();
+        for(Constructor<?> constructor : constructors){
+            if(isValidInvocation(constructor, params)){
+                result = constructor;
+                break;
+            }
+        }
+
+        if(result == null){
+            throw new NoConstructorException(String.format("No constructor exists for class %1$s with params %2$s",
+                    type.getName(), Arrays.toString(params)));
+        }
+
+        return result;
+    }
+
+    //TODO document this
+    public static boolean isDuplicateConstructor(Constructor<?> c1, Constructor<?> c2){
+        boolean duplicate = false;
+        if(c1.getName().equals(c2.getName())){
+            Class<?>[] c1ParamTypes = c1.getParameterTypes();
+            Class<?>[] c2ParamTypes = c2.getParameterTypes();
+            if(c1ParamTypes.length == c2ParamTypes.length){
+                if(Arrays.equals(c1ParamTypes, c2ParamTypes)){
+                    duplicate = true;
+                }
+            }
+        }
+
+        return duplicate;
+    }
+
+}

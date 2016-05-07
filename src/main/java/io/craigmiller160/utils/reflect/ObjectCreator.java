@@ -19,6 +19,9 @@ package io.craigmiller160.utils.reflect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
 /**
  * A simple utility class to instantiate
  * objects, wrapping any exceptions that occur
@@ -39,6 +42,26 @@ public class ObjectCreator {
         catch(InstantiationException | IllegalAccessException ex){
             throw new ReflectiveException("Unable to instantiate class: " + type.getName(), ex);
         }
+        return result;
+    }
+
+    public static <T> T instantiateClassWithParams(Class<T> type, Object...params) throws ReflectiveException{
+        T result = null;
+
+        try{
+            Constructor<?> constructor = ConstructorUtils.findConstructor(type, params);
+            if(constructor.isVarArgs()){
+                params = ConstructorUtils.convertParamsForVarArgsConstructor(constructor, params);
+            }
+            result = (T) constructor.newInstance(params);
+        }
+        catch(InstantiationException | IllegalAccessException ex){
+            throw new ReflectiveException("Unable to instantiate class: " + type.getName(), ex);
+        }
+        catch(InvocationTargetException ex){
+            throw new InvocationException("Exception occurred while trying to instantiate class: " + type.getName(), ex);
+        }
+
         return result;
     }
 

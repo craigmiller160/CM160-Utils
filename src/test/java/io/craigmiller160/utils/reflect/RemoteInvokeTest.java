@@ -100,4 +100,16 @@ public class RemoteInvokeTest {
         assertEquals("Result value does not match expected value", result1S, newValue1);
     }
 
+    @Test
+    public void testInvokePrimitiveParams() throws Exception{
+        ModelOne modelOne = new ModelOne();
+        Method m = modelOne.getClass().getMethod("setLongField", long.class);
+        ObjectAndMethod oam = new ObjectAndMethod(modelOne, m);
+
+        int newValue = 22;
+        RemoteInvoke.validateAndInvokeMethod(oam, newValue);
+
+        assertEquals("ModelOne LongField is the wrong value", newValue, modelOne.getLongField());
+    }
+
 }
