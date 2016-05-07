@@ -32,26 +32,6 @@ import java.util.List;
 public class FindAndInvoke {
 
     /**
-     * Find and invoke the method from a single object.
-     *
-     * @param object the object to find and invoke the method on.
-     * @param methodSig the signature of the method, minus params.
-     * @param newParams the parameters to pass to the method.
-     * @return the result of the invocation.
-     * @throws ReflectiveException If unable to reflectively invoke the method.
-     *
-     */
-    //TODO removing the single object methods because of ambiguous method calls. In the future, maybe find a way to restore this
-//    public static Object findInvokeOneMethod(Object object, String methodSig, Object... newParams) throws ReflectiveException{
-//        ObjectAndMethod oam = getMatchingMethodForSingle(object, methodSig, newParams);
-//        if(oam == null){
-//            throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
-//        }
-//
-//        return RemoteInvoke.invokeMethod(oam, newParams);
-//    }
-
-    /**
      * Find and invoke the method on a single matching object, identified from the
      * array of Objects passed to this method.
      *
@@ -62,12 +42,24 @@ public class FindAndInvoke {
      * @throws ReflectiveException If unable to reflectively invoke the method.
      */
     public static Object findInvokeOneMethod(String methodSig, Object[] objects, Object... newParams) throws ReflectiveException{
-        ObjectAndMethod oam = getMatchingMethod(objects, methodSig, newParams);
-        if(oam == null){
+        Object result = null;
+        boolean success = false;
+
+        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, objects);
+        for(ObjectAndMethod oam : potentialMatches){
+            Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
+            if(finalParams != null){
+                result = RemoteInvoke.invokeMethod(oam, finalParams);
+                success = true;
+                break;
+            }
+        }
+
+        if(!success){
             throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
         }
 
-        return RemoteInvoke.invokeMethod(oam, newParams);
+        return result;
     }
 
     /**
@@ -98,8 +90,9 @@ public class FindAndInvoke {
         Object result = null;
         boolean success = false;
         for(ObjectAndMethod oam : oams){
-            if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), newParams)){
-                result = RemoteInvoke.invokeMethod(oam, newParams);
+            Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
+            if(finalParams != null){
+                result = RemoteInvoke.invokeMethod(oam, finalParams);
                 success = true;
                 break;
             }
@@ -114,27 +107,6 @@ public class FindAndInvoke {
     }
 
     /**
-     * Find any matching methods in the provided object and invoke all matches.
-     * No value will be returned, because potentially invoking more than one
-     * method there is no way to know which one to return a value from.
-     *
-     * @param object the object to find and invoke methods on.
-     * @param methodSig the signature of the method to find and invoke.
-     * @param newParams the parameters to use for the method invocation.
-     * @throws ReflectiveException if unable to find or invoke the method.
-     */
-    //TODO removing the single object methods because of ambiguous method calls. In the future, maybe find a way to restore this
-//    public static void findInvokeAllMethods(Object object, String methodSig, Object... newParams) throws ReflectiveException{
-//        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromSingle(methodSig, object);
-//
-//        if(potentialMatches == null || potentialMatches.size() == 0){
-//            throw new NoMethodException(String.format("No method in object %1$s matches signature %2$s", object.getClass().getName(), methodSig));
-//        }
-//
-//        attemptToInvokeAllMethods(potentialMatches, newParams);
-//    }
-
-    /**
      * Find any matching methods in the provided array of objects and invoke all matches.
      * No value will be returned, because potentially invoking more than one
      * method there is no way to know which one to return a value from.
@@ -145,7 +117,7 @@ public class FindAndInvoke {
      * @throws ReflectiveException if unable to find or invoke the method.
      */
     public static void findInvokeAllMethods(String methodSig, Object[] objects, Object... newParams) throws ReflectiveException{
-        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromMultiple(objects, methodSig);
+        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, objects);
 
         if(potentialMatches == null || potentialMatches.size() == 0){
             throw new NoMethodException(String.format("No method in provided objects match signature %1$s.", methodSig));
@@ -197,7 +169,8 @@ public class FindAndInvoke {
     private static void attemptToInvokeAllMethods(Collection<ObjectAndMethod> oams, Object... newParams) throws NoMethodException{
         boolean success = false;
         for(ObjectAndMethod oam : oams){
-            if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), newParams)){
+            Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
+            if(finalParams != null){
                 RemoteInvoke.invokeMethod(oam, newParams);
                 success = true;
             }
@@ -209,32 +182,9 @@ public class FindAndInvoke {
         }
     }
 
-
-    private static ObjectAndMethod getMatchingMethod(Object[] objects, String methodSig, Object...newParams) {
-        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromMultiple(objects, methodSig);
-
-        for(ObjectAndMethod oam : potentialMatches){
-            if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), newParams)){
-                return oam;
-            }
-        }
-        return null;
-    }
-
-    private static ObjectAndMethod getMatchingMethodForSingle(Object object, String methodSig, Object...newParams) {
-        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethodsFromSingle(methodSig, object);
-
-        for(ObjectAndMethod oam : potentialMatches){
-            if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), newParams)){
-                return oam;
-            }
-        }
-        return null;
-    }
-
     /**
-     * Get all potentially matching methods from the collection of
-     * objects provided to this class. A potential match is a method whose
+     * Get all potentially matching methods from
+     * objects provided to this method. A potential match is a method whose
      * signature matches the provided String, but whose parameter types
      * haven't been checked yet.
      *
@@ -245,7 +195,7 @@ public class FindAndInvoke {
      *          from.
      * @throws NoMethodException if no potentially matching methods are found.
      */
-    private static List<ObjectAndMethod> getPotentialMatchingMethodsFromMultiple(Object[] objects, String methodSig) {
+    private static List<ObjectAndMethod> getPotentialMatchingMethods(String methodSig, Object...objects) {
         List<ObjectAndMethod> matchingMethods = new ArrayList<>();
         for(Object obj : objects){
             matchingMethods.addAll(getPotentialMatchingMethodsFromSingle(methodSig, obj));
@@ -260,7 +210,7 @@ public class FindAndInvoke {
     }
 
     /**
-     * Get all potentially matching methods from a single class.
+     * Get all potentially matching methods from a single object.
      * A potential match is a method whose signature matches the
      * provided String, but whose parameter types haven't been
      * checked yet.

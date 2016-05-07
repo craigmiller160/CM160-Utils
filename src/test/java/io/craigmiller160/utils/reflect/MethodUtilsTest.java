@@ -26,6 +26,7 @@ import java.util.Arrays;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -44,7 +45,7 @@ public class MethodUtilsTest {
     public void testSimpleMethodSuccess(){
         Method method = getMethod("method1");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertTrue(MethodUtils.isValidInvocation(method, "One"));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, "One"));
     }
 
     /**
@@ -56,7 +57,7 @@ public class MethodUtilsTest {
     public void testLargerMethodSuccess(){
         Method method = getMethod("method2");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertTrue(MethodUtils.isValidInvocation(method, "One", 12, false));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, "One", 12, false));
     }
 
     /**
@@ -68,7 +69,7 @@ public class MethodUtilsTest {
     public void testVarArgsSingleArgSuccess(){
         Method method = getMethod("method3");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertTrue(MethodUtils.isValidInvocation(method, "One", "Two"));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, "One", "Two"));
     }
 
     /**
@@ -80,7 +81,7 @@ public class MethodUtilsTest {
     public void testVarArgsMultipleArgSuccess(){
         Method method = getMethod("method3");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertTrue(MethodUtils.isValidInvocation(method, "One", "Two", "Three", "Four", "Five"));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, "One", "Two", "Three", "Four", "Five"));
     }
 
     /**
@@ -95,7 +96,7 @@ public class MethodUtilsTest {
 
         String[] args = new String[] {"Two", "Three", "Four", "Five"};
 
-        assertTrue(MethodUtils.isValidInvocation(method, "One", args));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, "One", args));
     }
 
     /**
@@ -106,7 +107,7 @@ public class MethodUtilsTest {
     public void testEmptyVarArgsSuccess(){
         Method method = getMethod("method3");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertTrue(MethodUtils.isValidInvocation(method, "Only"));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, "Only"));
     }
 
     /**
@@ -117,7 +118,7 @@ public class MethodUtilsTest {
     public void testSimpleMethodWrongArg(){
         Method method = getMethod("method1");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertFalse(MethodUtils.isValidInvocation(method, 22));
+        assertNull(MethodUtils.validateInvocationAndConvertParams(method, 22));
     }
 
     /**
@@ -129,7 +130,7 @@ public class MethodUtilsTest {
     public void testLargerMethodWrongArgs(){
         Method method = getMethod("method2");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertFalse(MethodUtils.isValidInvocation(method, 22, "Hi there", "What"));
+        assertNull(MethodUtils.validateInvocationAndConvertParams(method, 22, "Hi there", "What"));
     }
 
     /**
@@ -140,7 +141,7 @@ public class MethodUtilsTest {
     public void testLargerMethodTooFewArgs(){
         Method method = getMethod("method2");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertFalse(MethodUtils.isValidInvocation(method, "Hi there", 22));
+        assertNull(MethodUtils.validateInvocationAndConvertParams(method, "Hi there", 22));
     }
 
     /**
@@ -152,7 +153,7 @@ public class MethodUtilsTest {
     public void testLargerMethodTooManyArgs(){
         Method method = getMethod("method2");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertFalse(MethodUtils.isValidInvocation(method, "Hi there", 22, false, 22, 22, 22, 22));
+        assertNull(MethodUtils.validateInvocationAndConvertParams(method, "Hi there", 22, false, 22, 22, 22, 22));
     }
 
     /**
@@ -163,7 +164,7 @@ public class MethodUtilsTest {
     public void testPolymorphicValues(){
         Method method = getMethod("method4");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertTrue(MethodUtils.isValidInvocation(method, "Hi there", 22));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, "Hi there", 22));
     }
 
     /**
@@ -175,7 +176,7 @@ public class MethodUtilsTest {
     public void testPrimitivesIdenticalParams(){
         Method method = getMethod("method6");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertTrue(MethodUtils.isValidInvocation(method, 22));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, 22));
     }
 
     /**
@@ -188,7 +189,7 @@ public class MethodUtilsTest {
     public void testPolymorphicValuesVarArgs(){
         Method method = getMethod("method5");
         assertNotNull("Method for test wasn't retrieved", method);
-        assertTrue(MethodUtils.isValidInvocation(method, true, 23, 27.56));
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, true, 23, 27.56));
     }
 
     /**
@@ -203,124 +204,7 @@ public class MethodUtilsTest {
 
         Double[] args = new Double[]{23.72, 27.56};
 
-        assertTrue(MethodUtils.isValidInvocation(method, true, args));
-    }
-
-    /**
-     * Test converting the params for use in a varArgs
-     * method. This test is done using multiple VarArgs values.
-     */
-    @Test
-    public void testConvertForVarArgsMultiValue(){
-        Method method = getMethod("method3");
-        assertNotNull("Method for test wasn't retrieved", method);
-        Object[] params = MethodUtils.convertParamsForVarArgsMethod(method, "Message", "One", "Two", "Three");
-        assertEquals("Params wrong size", 2, params.length);
-        assertEquals("First param isn't a String", String.class, params[0].getClass());
-        assertEquals("First param has wrong content", "Message", params[0]);
-        assertEquals("Second param isn't a String[]", String[].class, params[1].getClass());
-        String[] arr = (String[]) params[1];
-        assertEquals("String Array Wrong Size", 3, arr.length);
-        assertEquals("String Array First Element Wrong Value", "One", arr[0]);
-        assertEquals("String Array Second Element Wrong Value", "Two", arr[1]);
-        assertEquals("String Array Third Element Wrong Value", "Three", arr[2]);
-    }
-
-    /**
-     * Test converting the params for use in a varArgs
-     * method. This test is done using a single value.
-     */
-    @Test
-    public void testConvertForVarArgsSingleValue(){
-        Method method = getMethod("method3");
-        assertNotNull("Method for test wasn't retrieved", method);
-        Object[] params = MethodUtils.convertParamsForVarArgsMethod(method, "Message", "One");
-        assertEquals("Params wrong size", 2, params.length);
-        assertEquals("First param isn't a String", String.class, params[0].getClass());
-        assertEquals("First param has wrong content", "Message", params[0]);
-        assertEquals("Second param isn't a String[]", String[].class, params[1].getClass());
-        String[] arr = (String[]) params[1];
-        assertEquals("String Array Wrong Size", 1, arr.length);
-        assertEquals("String Array First Element Wrong Value", "One", arr[0]);
-    }
-
-    /**
-     * Test converting the params for use in a varArgs
-     * method, if the invocation needs to provide
-     * an empty value for varArgs.
-     */
-    @Test
-    public void testConvertForVarArgsEmpty(){
-        Method method = getMethod("method3");
-        assertNotNull("Method for test wasn't retrieved", method);
-        Object[] params = MethodUtils.convertParamsForVarArgsMethod(method, "Message");
-        assertEquals("Params wrong size", 2, params.length);
-        assertEquals("First param isn't a String", String.class, params[0].getClass());
-        assertEquals("First param has wrong content", "Message", params[0]);
-        assertEquals("Second param isn't a String[]", String[].class, params[1].getClass());
-        String[] arr = (String[]) params[1];
-        assertEquals("String Array Wrong Size", 0, arr.length);
-    }
-
-    /**
-     * Test converting for varArgs if an array is passed
-     * as the varArgs parameter.
-     */
-    @Test
-    public void testConvertForVarArgsArray(){
-        Method method = getMethod("method3");
-        assertNotNull("Method for test wasn't retrieved", method);
-
-        String[] args = new String[]{"One", "Two", "Three"};
-
-        Object[] params = MethodUtils.convertParamsForVarArgsMethod(method, "Message", args);
-        assertEquals("Params wrong size", 2, params.length);
-        assertEquals("First param isn't a String", String.class, params[0].getClass());
-        assertEquals("First param has wrong content", "Message", params[0]);
-        assertEquals("Second param isn't a String[]", String[].class, params[1].getClass());
-        String[] arr = (String[]) params[1];
-        assertEquals("String Array Wrong Size", 3, arr.length);
-        assertEquals("String Array First Element Wrong Value", "One", arr[0]);
-        assertEquals("String Array Second Element Wrong Value", "Two", arr[1]);
-        assertEquals("String Array Third Element Wrong Value", "Three", arr[2]);
-    }
-
-    @Test
-    public void testConvertForVarArgsPolymorphicArray(){
-        Method method = getMethod("method5");
-        assertNotNull("Method for test wasn't retrieved", method);
-
-        Integer[] args = new Integer[]{1, 2, 3};
-
-        Object[] params = MethodUtils.convertParamsForVarArgsMethod(method, "Message", args);
-        assertEquals("Params wrong size", 2, params.length);
-        assertEquals("First param isn't a String", String.class, params[0].getClass());
-        assertEquals("First param has wrong content", "Message", params[0]);
-        assertEquals("Second param isn't a Integer[]", Integer[].class, params[1].getClass());
-        Integer[] arr = (Integer[]) params[1];
-        assertEquals("Integer Array Wrong Size", 3, arr.length);
-        assertEquals("Integer Array First Element Wrong Value", new Integer(1), arr[0]);
-        assertEquals("Integer Array Second Element Wrong Value", new Integer(2), arr[1]);
-        assertEquals("Integer Array Third Element Wrong Value", new Integer(3), arr[2]);
-    }
-
-    @Test
-    public void testConvertForVarArgsPolymorphic(){
-        Method method = getMethod("method5");
-        assertNotNull("Method for test wasn't retrieved", method);
-        Object[] params = MethodUtils.convertParamsForVarArgsMethod(method, "Message", 22, 33.781, 46);
-        assertEquals("Params wrong size", 2, params.length);
-        assertEquals("First param isn't a String", String.class, params[0].getClass());
-        assertEquals("First param has wrong content", "Message", params[0]);
-        assertEquals("Second param isn't a Number[]", Number[].class, params[1].getClass());
-        Number[] numArr = (Number[]) params[1];
-        assertEquals("Number Array Wrong Size", 3, numArr.length);
-        assertEquals("Number Array First Element Wrong Type", Integer.class, numArr[0].getClass());
-        assertEquals("Number Array First Element Wrong Value", 22, numArr[0]);
-        assertEquals("Number Array Second Element Wrong Type", Double.class, numArr[1].getClass());
-        assertEquals("Number Array Second Element Wrong Value", 33.781, numArr[1]);
-        assertEquals("Number Array Third Element Wrong Type", Integer.class, numArr[2].getClass());
-        assertEquals("Number Array Third Element Wrong Value", 46, numArr[2]);
+        assertNotNull(MethodUtils.validateInvocationAndConvertParams(method, true, args));
     }
 
     /**

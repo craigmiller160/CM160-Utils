@@ -24,37 +24,30 @@ import java.util.Arrays;
  */
 public class ConstructorUtils {
 
-    public static Object[] convertParamsForVarArgsConstructor(Constructor<?> constructor, Object... newParams){
-        if(!constructor.isVarArgs()){
-            return newParams;
-        }
+//    public static Object[] convertParamsForVarArgsConstructor(Constructor<?> constructor, Object... newParams){
+//        if(!constructor.isVarArgs()){
+//            return newParams;
+//        }
+//
+//        return ParamUtils.convertParamsForVarArgs(constructor.getParameterTypes(), newParams);
+//    }
+//
+//    public static boolean isValidInvocation(Constructor<?> constructor, Object...newParams){
+//        return ParamUtils.isValidInvocation(constructor.getParameterTypes(), constructor.isVarArgs(), newParams);
+//    }
 
-        return ParamUtils.convertParamsForVarArgs(constructor.getParameterTypes(), newParams);
+    public static Object[] validateInvocationAndConvertParams(Constructor<?> constructor, Object...newParams){
+        return ParamUtils.validateInvocationAndConvertParams(constructor.getParameterTypes(), constructor.isVarArgs(), newParams);
     }
 
-    public static boolean isValidInvocation(Constructor<?> constructor, Object...newParams){
-        return ParamUtils.isValidInvocation(constructor.getParameterTypes(), constructor.isVarArgs(), newParams);
-    }
-
-    public static Constructor<?> findConstructor(Class<?> type, Object...params){
-        Constructor result = null;
-        Constructor<?>[] constructors = type.getConstructors();
-        for(Constructor<?> constructor : constructors){
-            if(isValidInvocation(constructor, params)){
-                result = constructor;
-                break;
-            }
-        }
-
-        if(result == null){
-            throw new NoConstructorException(String.format("No constructor exists for class %1$s with params %2$s",
-                    type.getName(), Arrays.toString(params)));
-        }
-
-        return result;
-    }
-
-    //TODO document this
+    /**
+     * Test if the two constructors are dupliates. They are
+     * duplicates if they have the same names and parameter types.
+     *
+     * @param c1 the first constructor.
+     * @param c2 the second constructor.
+     * @return true if the two constructors are equal
+     */
     public static boolean isDuplicateConstructor(Constructor<?> c1, Constructor<?> c2){
         boolean duplicate = false;
         if(c1.getName().equals(c2.getName())){

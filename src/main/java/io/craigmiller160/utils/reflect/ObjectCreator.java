@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 
 /**
  * A simple utility class to instantiate
@@ -49,11 +50,15 @@ public class ObjectCreator {
         T result = null;
 
         try{
-            Constructor<?> constructor = ConstructorUtils.findConstructor(type, params);
-            if(constructor.isVarArgs()){
-                params = ConstructorUtils.convertParamsForVarArgsConstructor(constructor, params);
+            Constructor<?>[] constructors = type.getConstructors();
+            for(Constructor<?> constructor : constructors){
+                Object[] newParams = ConstructorUtils.validateInvocationAndConvertParams(constructor, params);
+                if(newParams != null){
+                    result = (T) constructor.newInstance(newParams);
+                    logger.trace("Successfully instantiated new instance of class {} with parameters {}", type.getName(), Arrays.toString(params));
+                    break;
+                }
             }
-            result = (T) constructor.newInstance(params);
         }
         catch(InstantiationException | IllegalAccessException ex){
             throw new ReflectiveException("Unable to instantiate class: " + type.getName(), ex);

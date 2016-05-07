@@ -3,6 +3,7 @@ CM160Utils Changelog
 Version 1.3
 + Added new method to ObjectCreator to instantiate an Object with constructor arguments.
 + Separated parameter parsing for reflective invocation out of MethodUtils and into new ParamUtils class.
++ Overhauled the parameter parsing logic now in ParamUtils, and completely changed the API. Instead of separate validation and conversion methods, a single method now does both, significantly improving performance.
 + Created ConstructorUtils class to perform the same operations as MethodUtils, but for Constructors.
 + Significantly improved handling of primitives with reflective invocations.
 + Created new superclass for ReflectiveMethodHolder, ReflectiveHolder, that could be used for a wider range of reflective components.

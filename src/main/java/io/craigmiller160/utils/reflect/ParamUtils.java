@@ -17,6 +17,8 @@
 package io.craigmiller160.utils.reflect;
 
 import io.craigmiller160.utils.collection.MultiValueMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -25,9 +27,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * A special utility class to parse
+ * parameters prior to a varArgs invocation.
+ *
  * Created by craig on 5/5/16.
  */
 public class ParamUtils {
+
+    /**
+     * The logger for this class.
+     */
+    private static final Logger logger = LoggerFactory.getLogger(ParamUtils.class);
 
     /**
      * A special map for comparing primitive types to wrapper types.
@@ -110,118 +120,148 @@ public class ParamUtils {
         putValue(char.class, char.class);
     }};
 
-    //TODO document this
-    public static Object[] convertParamsForVarArgs(Class<?>[] expectedTypes, Object...actualParams){
-        int expectedTypesCount = expectedTypes.length;
-
-        //If there are parameters provided, convert them
-        if(actualParams.length > 0){
-            //If there are more params than there are extra ones to be converted into a varargs array
-            if(actualParams.length > expectedTypesCount){
-                int varArgsLength = actualParams.length - expectedTypesCount + 1;
-                actualParams = performVarArgsParamConversion(expectedTypes, varArgsLength, actualParams); //TODO what if there is an array and individual params???
-            }
-            //If there is exactly the right amount of params, ensure that the last one is either an array or put it into one
-            else if(actualParams.length == expectedTypesCount){
-                int varArgsIndex = expectedTypesCount - 1;
-                if(expectedTypes[varArgsIndex].equals(actualParams[varArgsIndex].getClass()) ||
-                        expectedTypes[varArgsIndex].isAssignableFrom(actualParams[varArgsIndex].getClass())){
-                    //This is if an array is already provided
-                    return actualParams;
-                }
-                actualParams = performVarArgsParamConversion(expectedTypes, 1, actualParams);
-            }
-            //If the param count is one less then expected, then convert the params with an empty varargs array provided
-            else if(actualParams.length == expectedTypesCount - 1){
-                actualParams = performVarArgsParamConversion(expectedTypes, 0, actualParams);
-            }
-            //It should never need to check anything else, because this method doesn't validate invalid invocations
-            //Anything else would be an invalid invocation.
-        }
-        else{
-            //If no new params are provided, an empty array needs to be returned.
-            return (Object[]) Array.newInstance(expectedTypes[0], 0);
-        }
-        return actualParams;
-    }
-
     /**
-     * Convert the parameters provided for a varargs invocation. It takes
-     * the parameters from the varargs index to the end of the newParams array
-     * and puts them into a separate varargs array, with the size specified
-     * as an argument. If the size specified is 0, an empty varargs array
-     * will be created.
+     * Validate that the actual parameters can be safely passed to a method or
+     * constructor with the provided expected parameter types. In addition to
+     * validation, if the source method/constructor is varArgs, the parameters
+     * are converted to be able to work with a varargs reflective invocation.
      *
-     * After the conversion is done, everything is put into a new array
-     * and returned.
+     * This method returns an array of parameters after completing. If the method
+     * is not varargs, this array is the same one that was passed to it in the final
+     * argument. If the method is varargs, this array contains the parameters after
+     * being converted so they can be reflectively invoked on the varargs method.
      *
-     * @param expectedTypes the expected parameter types, including the varArgs type.
-     * @param varArgsSize the number of arguments that are being passed
-     *                    to the varargs part of the method.
-     * @param actualParams the parameters to convert for varargs.
-     * @return the converted parameters.
+     * Either way, calling classes should test the return value for null to see
+     * if validation passed, and use the returned parameters for the actual
+     * reflective invocation.
+     *
+     * @param expectedTypes the expected parameter types.
+     * @param isVarArgs if the method is varargs.
+     * @param actualParams the actual parameters provided.
+     * @return an array of (possibly converted) parameters if the validation
+     * passes, null if the validation fails.
      */
-    private static Object[] performVarArgsParamConversion(Class<?>[] expectedTypes, int varArgsSize, Object...actualParams){
-        Object[] resultArr = new Object[expectedTypes.length];
-        //Add every argument up until the index of the varargs to the resultArr
-        int varArgsIndex = expectedTypes.length - 1;
-        for(int i = 0; i < expectedTypes.length - 1; i++){
-            resultArr[i] = actualParams[i];
-        }
-        //Create a varargs array of the specified size. If 0, an empty array will be created
-        Object varArgs = Array.newInstance(expectedTypes[varArgsIndex].getComponentType(), varArgsSize);
-
-        //The components are assigned reflectively to accommodate for primitive arrays
-        for(int i = 0; i < varArgsSize; i++){
-            if(!expectedTypes[varArgsIndex].getComponentType().isAssignableFrom(actualParams[varArgsIndex + i].getClass()) &&
-                    !isAcceptablePrimitive(expectedTypes[varArgsIndex].getComponentType(), actualParams[varArgsIndex + i].getClass())){
-                throw new ReflectiveException(String.format("An object with type %1$s cannot be assigned to an array of component type %2$s",
-                        actualParams[varArgsIndex].getClass().getName(), expectedTypes[varArgsIndex].getComponentType()));
-            }
-            Array.set(varArgs, i, actualParams[varArgsIndex + i]);
-        }
-
-        //Assign the varArgs array to the varArgsIndex in the resultArr, aka the last position in the array
-        resultArr[varArgsIndex] = varArgs;
-
-        return resultArr;
-    }
-
-    //TODO document this
-    public static boolean isValidInvocation(Class<?>[] expectedTypes, boolean isVarArgs, Object...actualParams){
+    public static Object[] validateInvocationAndConvertParams(Class<?>[] expectedTypes, boolean isVarArgs, Object...actualParams){
         int expectedTypeCount = expectedTypes.length;
+        int actualParamCount = actualParams.length;
 
-        boolean result = false;
-        if(actualParams.length > 0){
-            if(actualParams.length > expectedTypeCount){
-                //If more params are provided than are contained in the method, the method MUST be varArgs.
+        logger.trace("Attempting to validate and convert parameters. ExpectedTypeCount: {}, ActualParamCount: {}, IsVarArgs: {}", expectedTypeCount, actualParamCount, isVarArgs);
+
+        if(actualParamCount > 0){
+            if(actualParamCount > expectedTypeCount){
+                //If more params are provided than are contained in the method, the method MUST be varArgs with multiple arguments to that varargs position
                 if(isVarArgs){
-                    result = validateParamsWithVarArgs(expectedTypes, actualParams);
+                    int varArgsSize = actualParamCount - expectedTypeCount + 1;
+                    actualParams = validateAndConvertForVarArgs(expectedTypes, varArgsSize, actualParams);
+                }
+                //If not varargs, then the number of params can't be invoked on the expected types, and null is returned
+                else{
+                    actualParams = null;
                 }
             }
-            else if(actualParams.length == expectedTypeCount){
-                //If their lengths are equal, may or may not be varargs.
+            else if(actualParamCount == expectedTypeCount){
+                //If their lengths are equal, may or may not be varargs. If it is, only a single argument is in the varargs position
                 if(isVarArgs){
-                    result = validateParamsWithVarArgs(expectedTypes, actualParams);
+                    actualParams = validateAndConvertForVarArgs(expectedTypes, 1, actualParams);
                 }
                 else{
-                    result = validateParamsNoVarArgs(expectedTypes, actualParams);
+                    //If the parameters provided do not match what is expected, invocation is not possible, and null is returned
+                    if(!validateParamsNoVarArgs(expectedTypes, actualParams)){
+                        actualParams = null;
+                    }
                 }
             }
-            else if(actualParams.length == expectedTypeCount - 1){
-                //If provided params are one less than expected, the method MUST be varArgs
+            else if(actualParamCount == expectedTypeCount - 1){
+                //If provided params are one less than expected, the method MUST be varArgs with no arguments in the varargs position
                 if(isVarArgs){
-                    result = validateParamsWithEmptyVarArgs(expectedTypes, actualParams);
+                    actualParams = validateAndConvertForVarArgs(expectedTypes, 0, actualParams);
+                }
+                //Otherwise, the number of provided parameters can't be passed to the expected types, and the method should return null
+                else{
+                    actualParams = null;
                 }
             }
             //If none of the above conditions are met, than the required number of params was not submitted and the method is not a match
         }
+        //No actual parameters have been provided to get to this point
         else{
-            //If no newParams are provided, the method must either have no params, or 1 param that is a varArg.
-            result = expectedTypeCount == 0 || (expectedTypeCount == 1 && isVarArgs);
+            //If the expected number of params is 1, and we're dealing with varargs, convert the params to just have an empty varargs position
+            if(expectedTypeCount == 1 && isVarArgs){
+                actualParams = Arrays.copyOf(actualParams, 1);
+                actualParams[0] = Array.newInstance(expectedTypes[0].getComponentType(), 0);
+            }
+            //If the expectedTypeCount is greater than 0 and it's not varargs, then this is invalid and should return null
+            else if(expectedTypeCount > 0 && !isVarArgs){
+                actualParams = null;
+            }
+            //Otherwise, expectedTypeCount == 0 and no params were supplied, meaning everything is good to go
         }
 
-        return result;
+        return actualParams;
+    }
+
+    /**
+     * Continue validating the parameter types, and perform the varArgs
+     * specific conversions that need to happen. This method expects to
+     * be working with varArgs, so that should be tested for before
+     * calling this method.
+     *
+     * Like the method that calls it, this one returns null if validation
+     * fails, and returns an array of converted parameters if it succeeds.
+     *
+     * @param expectedTypes the expected parameter types.
+     * @param varArgsSize the number of actualParams that will be a part of the varArgs array.
+     * @param actualParams the actual parameters provided.
+     * @return the converted parameters, or null if they fails validation.
+     */
+    private static Object[] validateAndConvertForVarArgs(Class<?>[] expectedTypes, int varArgsSize, Object... actualParams){
+        int expectedTypeCount = expectedTypes.length;
+        int actualParamCount = actualParams.length;
+
+        Object[] finalParams = new Object[expectedTypeCount];
+
+        for(int finalIndex = 0; finalIndex < expectedTypeCount; finalIndex++){
+            //If it's not the last parameter, then it's not the varargs parameter yet. Just perform simple validation of if the parameter is acceptable
+            if(finalIndex < expectedTypeCount - 1){
+                //If any parameter type is not assignable, the loop should end and method should return false, this is not a match
+                if(!expectedTypes[finalIndex].isAssignableFrom(actualParams[finalIndex].getClass()) && !isAcceptablePrimitive(expectedTypes[finalIndex], actualParams[finalIndex].getClass())) {
+                    return null;
+                }
+                //If it doesn't fail the above test, add the param to the finalParams array
+                else{
+                    finalParams[finalIndex] = actualParams[finalIndex];
+                }
+            }
+            //If it is the final param, then it's the varArgs param and should be handled in a special way
+            else{
+                //If only a single varargs parameter is provided, check to see if it is an array of the right type, because then no conversion is needed
+                if(varArgsSize == 1){
+                    if(expectedTypes[finalIndex].equals(actualParams[finalIndex].getClass()) ||
+                            expectedTypes[finalIndex].isAssignableFrom(actualParams[finalIndex].getClass())){
+                        finalParams[finalIndex] = actualParams[finalIndex];
+                        break;
+                    }
+                }
+                //Otherwise, validate and convert the remaining actualParams to ensure they can fit the varargs
+
+                //Create a varargs Array reflectively, in order to handle primitives. If the varargs size is 0, an empty array will be created
+                Object varArgs = Array.newInstance(expectedTypes[finalIndex].getComponentType(), varArgsSize);
+                for(int varArgsIndex = 0; varArgsIndex < actualParamCount - finalIndex; varArgsIndex++) {
+                    //If any of the parameters for the varargs array don't match, return null because validation failed
+                    if (!expectedTypes[finalIndex].getComponentType().isAssignableFrom(actualParams[finalIndex + varArgsIndex].getClass()) &&
+                            !isAcceptablePrimitive(expectedTypes[finalIndex].getComponentType(), actualParams[finalIndex + varArgsIndex].getClass())) {
+                        return null;
+                    } else {
+                        Array.set(varArgs, varArgsIndex, actualParams[finalIndex + varArgsIndex]);
+                    }
+                }
+
+
+                finalParams[finalIndex] = varArgs;
+            }
+        }
+
+        return finalParams;
     }
 
     /**
@@ -248,109 +288,6 @@ public class ParamUtils {
             }
         }
 
-        return result;
-    }
-
-    /**
-     * Validate that the provided params will all work as a reflective invocation.
-     *
-     * This particular method is intended for use with a method/constructor that is
-     * varargs and will have parameters passed to that varargs position.
-     *
-     * @param expectedTypes the expected parameter types.
-     * @param actualParams the parameters to test that they can be used for a
-     *                  varargs invocation.
-     * @return true if the params pass validation.
-     */
-    private static boolean validateParamsWithVarArgs(Class<?>[] expectedTypes, Object...actualParams){
-        int expectedTypeCount = expectedTypes.length;
-
-        boolean result = true;
-        for(int i = 0; i < expectedTypeCount; i++){
-            if(i < expectedTypeCount - 1){
-                //If it's not the last parameter, then it's not the varargs parameter yet
-                if(!expectedTypes[i].isAssignableFrom(actualParams[i].getClass())) {
-                    if(!isAcceptablePrimitive(expectedTypes[i], actualParams[i].getClass())){
-                        //If any parameter type is not assignable, the loop should end and method should return false, this is not a match
-                        result = false;
-                        break;
-                    }
-                }
-            }
-            else{
-                if(!isValidVarArgs(expectedTypes[i], Arrays.copyOfRange(actualParams, i, actualParams.length))){
-                    //If the final param, and the newParams provided for that position, won't work as valid varArgs, this is not a mach
-                    result = false;
-                    break;
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Validate that the provided params will all work as a reflective invocation.
-     *
-     * This specific method is intended to be used for reflectively invoking
-     * a varargs method/constructor with an empty varargs parameter.
-     *
-     * @param expectedTypes the expected parameter types.
-     * @param actualParams the params to test that they can be used for an empty
-     *                  varargs invocation.
-     * @return true if the parameters pass validation.
-     */
-    private static boolean validateParamsWithEmptyVarArgs(Class<?>[] expectedTypes, Object...actualParams){
-        int expectedTypeCount = expectedTypes.length;
-
-        boolean result = true;
-        //Only loop through all but the last argument to validate
-        for(int i = 0; i < expectedTypeCount - 1; i++){
-            if(!expectedTypes[i].isAssignableFrom(actualParams[i].getClass())) {
-                if(!isAcceptablePrimitive(expectedTypes[i], actualParams[i].getClass())){
-                    //If any parameter type is not assignable, the loop should end and method should return false, this is not a match
-                    result = false;
-                    break;
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Validate that the provides parameters are all valid for use with
-     * the varArg type provided.
-     *
-     * IMPORTANT: This method is NOT intended for use with an empty-varargs
-     * invocation.
-     *
-     * @param varArgType the type of vararg.
-     * @param varArgParams the parameters to test that they can be assigned to the vararg type.
-     * @return true if the parameters are valid for the vararg type.
-     */
-    private static boolean isValidVarArgs(Class<?> varArgType, Object...varArgParams){
-        boolean result = true;
-        //If there is a single varArgParam, and it's an array already, simply compare their types and return
-        if(varArgParams.length == 1 && varArgParams[0].getClass().isArray()){
-            return varArgType.equals(varArgParams[0].getClass()) || varArgType.isAssignableFrom(varArgParams[0].getClass());
-        }
-
-        //Get the type of component the varArg array expects
-        Class<?> arrayComponentType = varArgType.getComponentType();
-        if(arrayComponentType != null){
-            for(Object o : varArgParams){
-                if(!arrayComponentType.isAssignableFrom(o.getClass())){
-                    if(!isAcceptablePrimitive(arrayComponentType, o.getClass())){
-                        //If the type of array component cannot accept the varArgParam type, end the loop and this is not a match
-                        result = false;
-                        break;
-                    }
-                }
-            }
-        }
-        else{
-            //If the arrayComponentType is null, then this method was improperly called. Meaning something is broken
-            throw new RuntimeException("isValidVarArgs(...) called on a non-varArg type, check the invoking code for errors");
-        }
         return result;
     }
 

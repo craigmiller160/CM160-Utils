@@ -35,9 +35,11 @@ public class RemoteInvoke {
     private static final Logger logger = LoggerFactory.getLogger(RemoteInvoke.class);
 
     /**
-     * Validate that the provided method can be invoked with
-     * the provided arguments, then reflectively invoke it
-     * with the provided parameters.
+     * Reflectively invoke a method, performing validation before
+     * attempting to execute the invocation. Validation includes
+     * determining if the method can be safely invoked, as well
+     * as doing any parameter conversions to ensure the invocation
+     * works just like a direct invocation.
      *
      * @param oam the holder of the method to invoke and its source.
      * @param params the parameters to use to invoke the method.
@@ -47,8 +49,9 @@ public class RemoteInvoke {
      */
     public static Object validateAndInvokeMethod(ObjectAndMethod oam, Object...params) throws ReflectiveException {
         Object result = null;
-        if(MethodUtils.isValidInvocation(oam.getReflectiveComponent(), params)){
-            result = invokeMethod(oam, params);
+        Object[] newParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), params);
+        if(newParams != null){
+            result = invokeMethod(oam, newParams);
         }
         else{
             StringBuilder builder = new StringBuilder("[");
@@ -70,9 +73,9 @@ public class RemoteInvoke {
     /**
      * Reflectively invoke the method provided in the
      * holder object, using the provided parameters.
-     * No validation is done prior to invocation as
-     * far as whether or not the method can be safely
-     * invoked.
+     * No validation or parameter conversion will occur
+     * in this method, so it's expected that all parameter
+     * arguments will be 100% valid for the method.
      *
      * @param oam the holder of the method and its source object.
      * @param params the parameters to pass to the method.
@@ -81,10 +84,6 @@ public class RemoteInvoke {
      */
     public static Object invokeMethod(ObjectAndMethod oam, Object...params) throws ReflectiveException{
         Object result = null;
-        if(oam.isVarArgs()){
-            params = MethodUtils.convertParamsForVarArgsMethod(oam.getReflectiveComponent(), params);
-        }
-
         try{
             result = oam.getReflectiveComponent().invoke(oam.getSource(), params);
             logger.trace("Successfully invoked method. Method: {} | Params: {}", oam.getReflectiveComponent(), Arrays.toString(params));
