@@ -16,14 +16,8 @@
 
 package io.craigmiller160.utils.reflect;
 
-import io.craigmiller160.utils.collection.MultiValueMap;
-
-import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A utility class for operations involving methods that
