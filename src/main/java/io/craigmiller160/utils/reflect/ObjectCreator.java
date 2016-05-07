@@ -35,36 +35,39 @@ public class ObjectCreator {
     private static final Logger logger = LoggerFactory.getLogger(ObjectCreator.class);
 
     public static <T>  T instantiateClass(Class<T> type) throws ReflectiveException{
-        T result = null;
-        try{
-            result = type.newInstance();
-            logger.trace("Successfully instantiated new instance of class {}", type.getName());
-        }
-        catch(InstantiationException | IllegalAccessException ex){
-            throw new ReflectiveException("Unable to instantiate class: " + type.getName(), ex);
-        }
-        return result;
+        return instantiateClassWithParams(type);
     }
 
     public static <T> T instantiateClassWithParams(Class<T> type, Object...params) throws ReflectiveException{
         T result = null;
 
         try{
-            Constructor<?>[] constructors = type.getConstructors();
-            for(Constructor<?> constructor : constructors){
-                Object[] newParams = ConstructorUtils.validateInvocationAndConvertParams(constructor, params);
-                if(newParams != null){
-                    result = (T) constructor.newInstance(newParams);
-                    logger.trace("Successfully instantiated new instance of class {} with parameters {}", type.getName(), Arrays.toString(params));
-                    break;
+            if(params.length == 0){
+                result = type.newInstance();
+                logger.trace("Successfully instantiated new instance of class {}", type.getName());
+            }
+            else{
+                Constructor<?>[] constructors = type.getConstructors();
+                for(Constructor<?> constructor : constructors){
+                    Object[] newParams = ConstructorUtils.validateInvocationAndConvertParams(constructor, params);
+                    if(newParams != null){
+                        result = (T) constructor.newInstance(newParams);
+                        logger.trace("Successfully instantiated new instance of class {} with parameters {}", type.getName(), Arrays.toString(params));
+                        break;
+                    }
                 }
             }
         }
         catch(InstantiationException | IllegalAccessException ex){
-            throw new ReflectiveException("Unable to instantiate class: " + type.getName(), ex);
+            throw new ReflectiveException("Unable to instantiate class: " + type.getName() + " with params: " + Arrays.toString(params), ex);
         }
         catch(InvocationTargetException ex){
-            throw new InvocationException("Exception occurred while trying to instantiate class: " + type.getName(), ex);
+            throw new InvocationException("Exception occurred while trying to instantiate class: " + type.getName() + " with params: " + Arrays.toString(params), ex);
+        }
+
+        //If result is still null, and no exceptions were thrown, then no matching constructor was found
+        if(result == null){
+            throw new ReflectiveException("No matching constructor found in class: " + type.getName() + " with params: " + Arrays.toString(params));
         }
 
         return result;
