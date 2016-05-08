@@ -1,5 +1,8 @@
 CM160Utils Changelog
 
+Version 1.3.1
++ Improved ExceptionHandler so it could handle a wider range of exception conditions.
+
 Version 1.3
 + Added new method to ObjectCreator to instantiate an Object with constructor arguments.
 + Separated parameter parsing for reflective invocation out of MethodUtils and into new ParamUtils class.

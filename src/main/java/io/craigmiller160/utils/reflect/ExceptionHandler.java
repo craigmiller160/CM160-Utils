@@ -16,6 +16,9 @@
 
 package io.craigmiller160.utils.reflect;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.ExecutionException;
+
 /**
  * A special class that parses Exceptions where
  * the exact nature (Checked, unchecked, error, etc)
@@ -42,8 +45,14 @@ public class ExceptionHandler {
         if(ex instanceof Error){
             throw (Error) ex;
         }
+        else if(ex instanceof InvocationException){
+            throw (InvocationException) ex;
+        }
         else if(ex instanceof RuntimeException){
             throw (RuntimeException) ex;
+        }
+        else if(ex instanceof InvocationTargetException || ex instanceof ExecutionException){
+            throw new InvocationException(ex.getCause());
         }
         else{
             throw new InvocationException(ex);
