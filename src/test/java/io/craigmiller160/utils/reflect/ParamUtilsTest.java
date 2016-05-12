@@ -331,4 +331,60 @@ public class ParamUtilsTest {
         assertNull("finalParams were not returned null, validation succeeded when it should've failed", finalParams);
     }
 
+    /**
+     * Test validating a method when a null parameter is passed to it.
+     * The validation should pass because the null param should be
+     * accepted.
+     */
+    @Test
+    public void testValidateNull(){
+        Class<?>[] expectedTypes = {String.class, Integer.class};
+        Object[] actualParams = {null, 22};
+
+        Object[] finalParams = ParamUtils.validateInvocationAndConvertParams(expectedTypes, false, actualParams);
+        assertNotNull("finalParams were null", finalParams);
+        assertNull("finalParams[0] was not a null value", finalParams[0]);
+        assertEquals("finalParams[1] had the wrong value", 22, finalParams[1]);
+    }
+
+    /**
+     * Test validating a method when a null parameter
+     * is passed to it. The validation should fail because
+     * the null is being passed to a primitive parameter,
+     * which can't accept null arguments.
+     */
+    @Test
+    public void testValidateNullPrimitive(){
+        Class<?>[] expectedTypes = {String.class, int.class};
+        Object[] actualParams = {"foo", null};
+
+        Object[] finalParams = ParamUtils.validateInvocationAndConvertParams(expectedTypes, false, actualParams);
+        assertNull("finalParams were not null, validation succeeded when it should've failed", finalParams);
+    }
+
+    @Test
+    public void testValidateNullWithVarargs(){
+        Class<?>[] expectedTypes = {String.class, Integer[].class};
+        Object[] actualParams = {null};
+
+        Object[] finalParams = ParamUtils.validateInvocationAndConvertParams(expectedTypes, true, actualParams);
+        assertNotNull("finalParams were null", finalParams);
+        assertNull("finalParams[0] was not null", finalParams[0]);
+        assertEquals("finalParams[1] was not an Integer[]", Integer[].class, finalParams[1].getClass());
+    }
+
+    @Test
+    public void testValidateNullInVarargs(){
+        Class<?>[] expectedTypes = {String.class, Integer[].class};
+        Object[] actualParams = {"foo", 22, null};
+
+        Object[] finalParams = ParamUtils.validateInvocationAndConvertParams(expectedTypes, true, actualParams);
+        assertNotNull("finalParams were null", finalParams);
+        assertEquals("finalParams[0] had the wrong value", "foo", finalParams[0]);
+        assertEquals("finalParams[1] was not an Integer[]", Integer[].class, finalParams[1].getClass());
+        Integer[] array = (Integer[]) finalParams[1];
+        assertTrue("array[0] had the wrong value", 22 == array[0]);
+        assertNull("array[1] was not null", array[1]);
+    }
+
 }

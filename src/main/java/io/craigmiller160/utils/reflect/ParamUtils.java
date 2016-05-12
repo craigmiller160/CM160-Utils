@@ -223,20 +223,24 @@ public class ParamUtils {
         for(int finalIndex = 0; finalIndex < expectedTypeCount; finalIndex++){
             //If it's not the last parameter, then it's not the varargs parameter yet. Just perform simple validation of if the parameter is acceptable
             if(finalIndex < expectedTypeCount - 1){
-                //If any parameter type is not assignable, the loop should end and method should return false, this is not a match
-                if(!expectedTypes[finalIndex].isAssignableFrom(actualParams[finalIndex].getClass()) && !isAcceptablePrimitive(expectedTypes[finalIndex], actualParams[finalIndex].getClass())) {
+                if(!validateParam(expectedTypes[finalIndex], actualParams[finalIndex])){
                     return null;
                 }
-                //If it doesn't fail the above test, add the param to the finalParams array
                 else{
                     finalParams[finalIndex] = actualParams[finalIndex];
                 }
             }
             //If it is the final param, then it's the varArgs param and should be handled in a special way
             else{
-                //If only a single varargs parameter is provided, check to see if it is an array of the right type, because then no conversion is needed
+                //If only a single varargs parameter is provided, perform special validation
                 if(varArgsSize == 1){
-                    if(expectedTypes[finalIndex].equals(actualParams[finalIndex].getClass()) ||
+                    //If the param at that index is null, just assign it because null values are valid
+                    if(actualParams[finalIndex] == null){
+                        finalParams[finalIndex] = actualParams[finalIndex];
+                        break;
+                    }
+                    //Otherwise, test if it's an array of the right type, and if so just assign it.
+                    else if(expectedTypes[finalIndex].equals(actualParams[finalIndex].getClass()) ||
                             expectedTypes[finalIndex].isAssignableFrom(actualParams[finalIndex].getClass())){
                         finalParams[finalIndex] = actualParams[finalIndex];
                         break;
@@ -248,20 +252,48 @@ public class ParamUtils {
                 Object varArgs = Array.newInstance(expectedTypes[finalIndex].getComponentType(), varArgsSize);
                 for(int varArgsIndex = 0; varArgsIndex < actualParamCount - finalIndex; varArgsIndex++) {
                     //If any of the parameters for the varargs array don't match, return null because validation failed
-                    if (!expectedTypes[finalIndex].getComponentType().isAssignableFrom(actualParams[finalIndex + varArgsIndex].getClass()) &&
-                            !isAcceptablePrimitive(expectedTypes[finalIndex].getComponentType(), actualParams[finalIndex + varArgsIndex].getClass())) {
+                    if(!validateParam(expectedTypes[finalIndex].getComponentType(), actualParams[finalIndex + varArgsIndex])){
                         return null;
-                    } else {
+                    }
+                    //Otherwise, set the array position reflectively to avoid weird issues
+                    else {
                         Array.set(varArgs, varArgsIndex, actualParams[finalIndex + varArgsIndex]);
                     }
-                }
 
+                }
 
                 finalParams[finalIndex] = varArgs;
             }
         }
 
         return finalParams;
+    }
+
+    /**
+     * Perform the validation of a parameter. Compare the actualParam to the expectedType
+     * in every possible way, to determine if it is acceptable.
+     *
+     * @param expectedType the expected parameter type.
+     * @param actualParam the actual parameter value.
+     * @return true if the actual parameter is acceptable for the expected type.
+     */
+    private static boolean validateParam(Class<?> expectedType, Object actualParam){
+        //If the param is null, and the expected type is a primitive, the validation fails because a null value can't be passed to a primitive index
+        if(actualParam == null && expectedType.isPrimitive()){
+            return false;
+        }
+        //If the param is null, and the expected type is not a primitive, then just assign the null value to the final array because null values are acceptable
+        else if(actualParam == null){
+            return true;
+        }
+        //If any parameter type is not assignable, the loop should end and method should return false, this is not a match
+        else if(!expectedType.isAssignableFrom(actualParam.getClass()) && !isAcceptablePrimitive(expectedType, actualParam.getClass())) {
+            return false;
+        }
+        //If it doesn't fail the above test, add the param to the finalParams array
+        else{
+            return true;
+        }
     }
 
     /**
@@ -279,12 +311,9 @@ public class ParamUtils {
 
         boolean result = true;
         for(int i = 0; i < expectedTypeCount; i++){
-            if(!expectedTypes[i].isAssignableFrom(actualParams[i].getClass())) {
-                if(!isAcceptablePrimitive(expectedTypes[i], actualParams[i].getClass())){
-                    //If any parameter type is not assignable, the loop should end and method should return false, this is not a match
-                    result = false;
-                    break;
-                }
+            if(!validateParam(expectedTypes[i], actualParams[i])){
+                result = false;
+                break;
             }
         }
 
