@@ -186,7 +186,7 @@ public class ParamUtils {
         //No actual parameters have been provided to get to this point
         else{
             //If null params were provided, return an array with a single null element
-            if(actualParams == null){
+            if(actualParams == null && expectedTypeCount == 1 && !expectedTypes[0].isPrimitive()){
                 actualParams = new Object[1];
                 actualParams[0] = null;
             }

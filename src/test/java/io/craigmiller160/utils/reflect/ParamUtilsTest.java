@@ -387,4 +387,29 @@ public class ParamUtilsTest {
         assertNull("array[1] was not null", array[1]);
     }
 
+    /**
+     * Test validating when all that's passed in is null
+     */
+    @Test
+    public void testValidateWithPureNullArg(){
+        Class<?>[] expectedTypes = {String.class};
+
+        Object[] finalParams = ParamUtils.validateInvocationAndConvertParams(expectedTypes, false, null);
+        assertNotNull("finalParams were null", finalParams);
+        assertNull("finalParams[0] was  not null", finalParams[0]);
+    }
+
+    /**
+     * Test validating passing a pure null arguments to a
+     * primitive expected type.
+     */
+    @Test
+    public void testValidatePureNullArgPrimitiveType(){
+        Class<?>[] expectedTypes = {int.class};
+        Object[] finalParams = ParamUtils.validateInvocationAndConvertParams(expectedTypes, false, null);
+
+        assertNull("finalParams were not null, they should be", finalParams);
+
+    }
+
 }
