@@ -143,7 +143,7 @@ public class ParamUtils {
      */
     public static Object[] validateInvocationAndConvertParams(Class<?>[] expectedTypes, boolean isVarArgs, Object...actualParams){
         int expectedTypeCount = expectedTypes.length;
-        int actualParamCount = actualParams.length;
+        int actualParamCount = actualParams != null ? actualParams.length : 0;
 
         logger.trace("Attempting to validate and convert parameters. ExpectedTypeCount: {}, ActualParamCount: {}, IsVarArgs: {}", expectedTypeCount, actualParamCount, isVarArgs);
 
@@ -185,8 +185,13 @@ public class ParamUtils {
         }
         //No actual parameters have been provided to get to this point
         else{
+            //If null params were provided, return an array with a single null element
+            if(actualParams == null){
+                actualParams = new Object[1];
+                actualParams[0] = null;
+            }
             //If the expected number of params is 1, and we're dealing with varargs, convert the params to just have an empty varargs position
-            if(expectedTypeCount == 1 && isVarArgs){
+            else if(expectedTypeCount == 1 && isVarArgs){
                 actualParams = Arrays.copyOf(actualParams, 1);
                 actualParams[0] = Array.newInstance(expectedTypes[0].getComponentType(), 0);
             }
