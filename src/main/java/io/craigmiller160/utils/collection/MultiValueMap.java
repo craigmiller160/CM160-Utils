@@ -32,6 +32,8 @@ import java.util.Set;
  */
 public class MultiValueMap<K,V> implements Map<K,Collection<V>> {
 
+	//TODO adjust to match Java Map API specifications. For example, put() should only return a value if one already exists
+
     /**
      * The underlying map within this special map implementation.
      */
