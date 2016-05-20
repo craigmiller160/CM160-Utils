@@ -20,7 +20,10 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Parse the provided Object or Objects and find the specified method,
@@ -32,6 +35,19 @@ public class FindAndInvoke {
 
 	//TODO Multiple methods with the same name and different params can cause issues with newParams being null or having null values, it makes it tougher to find a match because of ambiguity. This should be tested for and an 
 //exception thrown.
+
+    /*
+     * How it might work:
+     *
+     * If there's just one result after param validation, invoke it
+     * If more than one, there need to be rules
+     *
+     * 1) Null arguments: If multiple methods have non-primitive arguments that are being passed null, an exception should be thrown for ambiguity
+     * 2) If no arguments are null, the methods should be compared for inheritance. The more specific implementation should win out.
+     *
+     * Iterate through the results once. Assign the first value to a final ObjectAndMethod
+     * Each subsequent iteration, compare all parameters. Check if the arg for that position is null, if it is and there are multiple object types, throw exception
+     */
 
 
     /**
@@ -48,19 +64,36 @@ public class FindAndInvoke {
         Object result = null;
         boolean success = false;
 
-        int actualParamCount = newParams != null ? newParams.length : 0;
+        int actualParamCount = newParams != null ? newParams.length : 0; //TODO needs to be modified to better handle multiples
         List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, actualParamCount, objects);
-        for(ObjectAndMethod oam : potentialMatches){
+
+        Map<ObjectAndMethod,Object[]> finalMatches = new HashMap<>();
+        for(ObjectAndMethod oam : potentialMatches){ //TODO can probably be merged with method that accepts a Collection<ObjectAndMethod>
             Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
             if(finalParams != null){
-                result = RemoteInvoke.invokeMethod(oam, finalParams);
-                success = true;
-                break;
+//                result = RemoteInvoke.invokeMethod(oam, finalParams);
+//                success = true;
+//                break;
+                finalMatches.put(oam, finalParams);
             }
         }
 
-        if(!success){
+        //TODO consider switch, might be more elegant here
+        if(finalMatches.size() == 0){
             throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
+        }
+        //If only one match, invoke the entry
+        else if(finalMatches.size() == 1){
+            Set<Map.Entry<ObjectAndMethod,Object[]>> entries = finalMatches.entrySet();
+            for(Map.Entry<ObjectAndMethod,Object[]> entry : entries){
+                result = RemoteInvoke.invokeMethod(entry.getKey(), entry.getValue());
+            }
+        }
+        else{
+            Set<Map.Entry<ObjectAndMethod,Object[]>> entries = finalMatches.entrySet();
+            for(Map.Entry<ObjectAndMethod,Object[]> entry : entries){
+                //TODO perform the comparison
+            }
         }
 
         return result;
@@ -93,7 +126,7 @@ public class FindAndInvoke {
     public static Object findInvokeOneMethod(Collection<ObjectAndMethod> oams, Object... newParams) throws ReflectiveException{
         Object result = null;
         boolean success = false;
-        for(ObjectAndMethod oam : oams){
+        for(ObjectAndMethod oam : oams){ //TODO needs to be modified to better handle multiples
             Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
             if(finalParams != null){
                 result = RemoteInvoke.invokeMethod(oam, finalParams);
@@ -124,7 +157,7 @@ public class FindAndInvoke {
         int actualParamCount = newParams != null ? newParams.length : 0;
         List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, actualParamCount, objects);
 
-        if(potentialMatches == null || potentialMatches.size() == 0){
+        if(potentialMatches == null || potentialMatches.size() == 0){ //TODO needs to be modified to better handle multiples
             throw new NoMethodException(String.format("No method in provided objects match signature %1$s.", methodSig));
         }
 
@@ -173,7 +206,7 @@ public class FindAndInvoke {
      */
     private static void attemptToInvokeAllMethods(Collection<ObjectAndMethod> oams, Object... newParams) throws NoMethodException{
         boolean success = false;
-        for(ObjectAndMethod oam : oams){
+        for(ObjectAndMethod oam : oams){ //TODO needs to be modified to better handle multiples
             Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
             if(finalParams != null){
                 RemoteInvoke.invokeMethod(oam, newParams);
