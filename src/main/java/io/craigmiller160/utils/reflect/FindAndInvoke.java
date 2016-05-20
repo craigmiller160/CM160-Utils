@@ -48,7 +48,8 @@ public class FindAndInvoke {
         Object result = null;
         boolean success = false;
 
-        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, objects);
+        int actualParamCount = newParams != null ? newParams.length : 0;
+        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, actualParamCount, objects);
         for(ObjectAndMethod oam : potentialMatches){
             Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
             if(finalParams != null){
@@ -120,7 +121,8 @@ public class FindAndInvoke {
      * @throws ReflectiveException if unable to find or invoke the method.
      */
     public static void findInvokeAllMethods(String methodSig, Object[] objects, Object... newParams) throws ReflectiveException{
-        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, objects);
+        int actualParamCount = newParams != null ? newParams.length : 0;
+        List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, actualParamCount, objects);
 
         if(potentialMatches == null || potentialMatches.size() == 0){
             throw new NoMethodException(String.format("No method in provided objects match signature %1$s.", methodSig));
@@ -192,16 +194,17 @@ public class FindAndInvoke {
      * haven't been checked yet.
      *
      * @param objects the collection of objects to search for a matching method.
+     * @param actualParamCount the count of parameters provided for the invocation.
      * @param methodSig the signature of the method to search for a match
      *                  of.
      * @return a list of all matching methods paired with the objects they're
      *          from.
      * @throws NoMethodException if no potentially matching methods are found.
      */
-    private static List<ObjectAndMethod> getPotentialMatchingMethods(String methodSig, Object...objects) {
+    private static List<ObjectAndMethod> getPotentialMatchingMethods(String methodSig, int actualParamCount, Object...objects) {
         List<ObjectAndMethod> matchingMethods = new ArrayList<>();
         for(Object obj : objects){
-            matchingMethods.addAll(getPotentialMatchingMethodsFromSingle(methodSig, obj));
+            matchingMethods.addAll(getPotentialMatchingMethodsFromSingle(methodSig, obj, actualParamCount));
         }
 
         //If no matches are found, throw an exception
@@ -222,15 +225,21 @@ public class FindAndInvoke {
      *                  for.
      * @param obj the object to search for methods with a matching
      *            signature.
+     * @param actualParamCount the count of parameters provided for the invocation.
      * @return a list of any potential matches found, or an empty
      *          list if none are found.
      */
-    private static List<ObjectAndMethod> getPotentialMatchingMethodsFromSingle(String methodSig, Object obj){
+    private static List<ObjectAndMethod> getPotentialMatchingMethodsFromSingle(String methodSig, Object obj, int actualParamCount){
         List<ObjectAndMethod> matches = new ArrayList<>();
         Method[] methods = obj.getClass().getMethods();
         for(Method m : methods){
             if(m.getName().equals(methodSig)){
-                matches.add(new ObjectAndMethod(obj, m));
+                if(m.isVarArgs() && m.getParameterCount() >= actualParamCount - 1){
+                    matches.add(new ObjectAndMethod(obj, m));
+                }
+                else if(m.getParameterCount() == actualParamCount){
+                    matches.add(new ObjectAndMethod(obj, m));
+                }
             }
         }
 

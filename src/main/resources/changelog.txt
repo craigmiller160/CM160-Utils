@@ -1,5 +1,8 @@
 CM160Utils Changelog
 
+Version 1.3.3
++ Improved FindAndInvoke for when multiple methods could be invoked, identifying the best one to use.
+
 Version 1.3.2
 + Improved ParamUtils to be able to handle null arguments, thus making all reflective utilities capable of accepting null arguments.
 
