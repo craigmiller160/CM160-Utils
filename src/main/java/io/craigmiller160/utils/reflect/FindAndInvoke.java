@@ -1,17 +1,17 @@
 /*
  * Copyright 2016 Craig Miller
  *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
  */
 
 package io.craigmiller160.utils.reflect;
@@ -33,9 +33,6 @@ import java.util.Set;
  */
 public class FindAndInvoke {
 
-	//TODO Multiple methods with the same name and different params can cause issues with newParams being null or having null values, it makes it tougher to find a match because of ambiguity. This should be tested for and an 
-//exception thrown.
-
     /*
      * How it might work:
      *
@@ -48,6 +45,11 @@ public class FindAndInvoke {
      * Iterate through the results once. Assign the first value to a final ObjectAndMethod
      * Each subsequent iteration, compare all parameters. Check if the arg for that position is null, if it is and there are multiple object types, throw exception
      */
+
+    //TODO test ideas for this:
+    // 1) Overloaded method: One with object, one with String. Passing an object should get the Object, passing a String should get the String
+    // 2) Overloaded method with null - ambiguous.
+    // 3) Actual duplicate methods - should cause exception for the invokeOne
 
 
     /**
@@ -91,9 +93,70 @@ public class FindAndInvoke {
         }
         else{
             Set<Map.Entry<ObjectAndMethod,Object[]>> entries = finalMatches.entrySet();
+            Map.Entry<ObjectAndMethod,Object[]> invokeEntry = null;
             for(Map.Entry<ObjectAndMethod,Object[]> entry : entries){
-                //TODO perform the comparison
+                boolean ambiguous = true; //TODO this needs to be set to false before the end of the next iteration
+                if(invokeEntry == null){
+                    invokeEntry = entry;
+                    continue;
+                }
+
+                Method invokeMethod = invokeEntry.getKey().getReflectiveComponent();
+                Class<?>[] invokeParamTypes = invokeMethod.getParameterTypes();
+                Object[] invokeParams = invokeEntry.getValue();
+                Method entryMethod = entry.getKey().getReflectiveComponent();
+                Class<?>[] entryParamTypes = entryMethod.getParameterTypes();
+                Object[] entryParams = entry.getValue(); //TODO need to use these params too
+
+                if(invokeMethod.isVarArgs() && !entryMethod.isVarArgs()){
+                    invokeEntry = entry;
+                    ambiguous = false;
+                }
+                else if(!invokeMethod.isVarArgs() && entryMethod.isVarArgs()){
+                    continue;
+                }
+                else{
+                    for(int i = 0; i < invokeParamTypes.length; i++){
+                        if(invokeParamTypes[i].equals(entryParamTypes[i]) || ParamUtils.isAcceptablePrimitive(invokeParamTypes[i], entryParamTypes[i])){
+                            continue;
+                        }
+                        else if(invokeParamTypes[i].isAssignableFrom(entryParamTypes[i])){
+                            if(entryParams != null && entryParams[i] != null){
+                                invokeEntry = entry;
+                                ambiguous = false;
+                                break;
+                            }
+                            //TODO ensure that if the above condition isn't met, the ambiguous exception will be thrown
+                        }
+                        else if(entryParamTypes[i].isAssignableFrom(invokeParamTypes[i])){
+                            if(invokeParams != null && invokeParams[i] != null){
+                                ambiguous = false;
+                                break;
+                            }
+                            //TODO ensure that if the above condition isn't met, the ambiguous exception will be thrown
+                        }
+                    }
+                }
+
+                if(ambiguous){
+                    throw new NoMethodException(String.format("Ambiguous Method call: Multiple methods match signature %1$x with params %2$s",
+                            methodSig, Arrays.toString(newParams)));
+                }
+
+
+                //TODO what about different param counts (due to possible varargs)
+                //TODO when varargs and non varargs, and the actualParams don't have varargs, it goes with the non-varargs
+
+                /*
+                 * Go through each parameter
+                 * Test for equality, if any two methods are equal, then throw exception
+                 * Use isAssignableFrom to find which is more specific
+                 * If the actual param for that index is null, throw exception
+                 */
+
             }
+
+            result = RemoteInvoke.invokeMethod(invokeEntry.getKey(), invokeEntry.getValue());
         }
 
         return result;
@@ -267,10 +330,10 @@ public class FindAndInvoke {
         Method[] methods = obj.getClass().getMethods();
         for(Method m : methods){
             if(m.getName().equals(methodSig)){
-                if(m.isVarArgs() && m.getParameterCount() >= actualParamCount - 1){
+                if(m.isVarArgs() && m.getParameterTypes().length >= actualParamCount - 1){
                     matches.add(new ObjectAndMethod(obj, m));
                 }
-                else if(m.getParameterCount() == actualParamCount){
+                else if(m.getParameterTypes().length == actualParamCount){
                     matches.add(new ObjectAndMethod(obj, m));
                 }
             }

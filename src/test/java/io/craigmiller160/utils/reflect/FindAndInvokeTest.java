@@ -35,6 +35,10 @@ import static org.junit.Assert.assertTrue;
  */
 public class FindAndInvokeTest {
 
+    public static final String SAME_NAME_OBJECT = "SameName Object";
+    public static final String SAME_NAME_STRING = "SameName String";
+    public static final String SAME_NAME_VARARGS = "SameName varargs";
+
     @Test
     public void testFindAndInvoke() throws Exception {
         Object[] objects = getObjects();
@@ -77,6 +81,34 @@ public class FindAndInvokeTest {
 
         assertTrue("TestClass1 method wasn't invoked", tc3.getTc1Success());
         assertTrue("TestClass2 method wasn't invoked", tc3.getTc2Success());
+    }
+
+    /**
+     * Test invoking a method with multiple potential
+     * matches, to ensure that the correct one is invoked.
+     */
+    @Test
+    public void testInvokeOneOfMultiplePotentialMatches(){
+        String value = "foo";
+        Object[] objects = getObjects();
+
+        String result = (String) FindAndInvoke.findInvokeOneMethod("sameName", objects, value);
+        assertNotNull("First Result is null", result);
+        assertEquals("First Result has the wrong value", SAME_NAME_STRING, result);
+
+        result = (String) FindAndInvoke.findInvokeOneMethod("sameName", objects, value, "One", "Two");
+        assertNotNull("Second Result is null", result);
+        assertEquals("Second Result has the wrong value", SAME_NAME_VARARGS, result);
+
+        boolean exceptionThrown = false;
+        try{
+            result = (String) FindAndInvoke.findInvokeOneMethod("sameName", objects, null);
+        }
+        catch(NoMethodException ex){
+            exceptionThrown = true;
+        }
+
+        assertTrue("No exception was thrown for ambiguous method", exceptionThrown);
     }
 
     private Collection<ObjectAndMethod> getOams() throws Exception{
@@ -137,9 +169,15 @@ public class FindAndInvokeTest {
             }
         }
 
+        public String sameName(String s, Object...o){
+            return SAME_NAME_VARARGS;
+        }
+
     }
 
     private class TestClass2 extends ParentTestClass{
+
+
 
         public String method2(String s1, Integer i1){
             return s1 + " " + i1;
@@ -149,6 +187,14 @@ public class FindAndInvokeTest {
             if(tc3 != null){
                 tc3.setTc2Success(true);
             }
+        }
+
+        public String sameName(Object o){
+            return SAME_NAME_OBJECT;
+        }
+
+        public String sameName(String s){
+            return SAME_NAME_STRING;
         }
 
     }
