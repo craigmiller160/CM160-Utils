@@ -92,9 +92,18 @@ public class FindAndInvokeTest {
         String value = "foo";
         Object[] objects = getObjects();
 
+        long start = System.currentTimeMillis(); //TODO delete this
+
         String result = (String) FindAndInvoke.findInvokeOneMethod("sameName", objects, value);
+
+        long end = System.currentTimeMillis(); //TODO delete this
+        System.out.println(end - start); //TODO delete this
+
+
         assertNotNull("First Result is null", result);
         assertEquals("First Result has the wrong value", SAME_NAME_STRING, result);
+
+
 
         result = (String) FindAndInvoke.findInvokeOneMethod("sameName", objects, value, "One", "Two");
         assertNotNull("Second Result is null", result);
@@ -109,9 +118,13 @@ public class FindAndInvokeTest {
         }
 
         assertTrue("No exception was thrown for ambiguous method", exceptionThrown);
+
+        end = System.currentTimeMillis(); //TODO delete this
+        System.out.println(end - start); //TODO delete this
     }
 
     private Collection<ObjectAndMethod> getOams() throws Exception{
+
         List<ObjectAndMethod> oams = new ArrayList<>();
         TestClass1 tc1 = new TestClass1();
         Method m = tc1.getClass().getMethod("method1", String.class, String.class);

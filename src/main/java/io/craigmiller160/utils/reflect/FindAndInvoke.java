@@ -17,6 +17,7 @@
 package io.craigmiller160.utils.reflect;
 
 import io.craigmiller160.utils.util.ArrayUtil;
+import io.craigmiller160.utils.util.Pair;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -34,6 +35,8 @@ import java.util.Set;
  * Created by Craig on 2/14/2016.
  */
 public class FindAndInvoke {
+
+    //TODO consider eliminating the overloading of the methods
 
     //TODO remove these comments
     /*
@@ -69,7 +72,7 @@ public class FindAndInvoke {
         int actualParamCount = newParams != null ? newParams.length : 0;
         List<ObjectAndMethod> potentialMatches = getPotentialMatchingMethods(methodSig, actualParamCount, objects);
 
-        return performInvocation(methodSig, potentialMatches, newParams);
+        return performInvocation(methodSig, potentialMatches, true, newParams);
     }
 
     /**
@@ -87,6 +90,120 @@ public class FindAndInvoke {
         return findInvokeOneMethod(methodSig, objects.toArray(), newParams);
     }
 
+    /**
+     * Parse all potentially matching methods, and either perform the
+     * invocation or throw an exception. It returns the result of the
+     * invocation ONLY if the boolean single parameter is true. For
+     * multiple invocations, it will always return null.
+     *
+     * @param methodSig the signature of the method.
+     * @param oams the potentially matching methods.
+     * @param single if this is a single invocation.
+     * @param newParams the parameters to use for the invocation.
+     * @return the result of the invocation. Will always be null for multiple invocations.
+     * @throws ReflectiveException if unable to reflectively invoke any methods.
+     */
+    private static Object performInvocation(String methodSig, Collection<ObjectAndMethod> oams,
+                                            boolean single, Object...newParams) throws ReflectiveException{
+        long start = System.currentTimeMillis(); //TODO delete this
+        Object result = null;
+        boolean success = false;
+
+        Pair<ObjectAndMethod,Object[]> singleInvoke = null;
+        for(ObjectAndMethod oam : oams){
+            Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
+            //If the params weren't valid, don't perform any of the additional validation
+            if(finalParams == null){
+                continue;
+            }
+
+            //Parse multiple options for invocation if single is true, or just invoke if single is false
+            if(single){
+                if(singleInvoke == null){
+                    singleInvoke = new Pair<>(oam, finalParams);
+                }
+                else{
+                    singleInvoke = chooseInvocation(methodSig, singleInvoke.getFirst(), singleInvoke.getSecond(), oam, finalParams);
+                }
+            }
+            else{
+                RemoteInvoke.invokeMethod(oam, finalParams);
+                success = true;
+            }
+        }
+
+        if(single && singleInvoke != null){
+            result = RemoteInvoke.invokeMethod(singleInvoke.getFirst(), singleInvoke.getSecond());
+            success = true;
+        }
+
+        if(!success){
+            throw new NoMethodException(String.format("No provided method can be invoked with the provided params. " +
+                    "Params: %s", Arrays.toString(newParams)));
+        }
+
+        long end = System.currentTimeMillis(); //TODO delete this
+        System.out.println("MAIN: " + (end - start)); //TODO delete this
+
+        return result;
+    }
+
+    /**
+     * Compare two potential invocations to find the one that should actually
+     * be invoked.
+     *
+     * @param methodSig the signature of the method.
+     * @param invokeOam the currently selected method to invoke.
+     * @param invokeParams the currently selected params to invoke.
+     * @param otherOam the other possible method to invoke.
+     * @param otherParams the other possible params to invoke.
+     * @return the Pair of method and params to invoke.
+     * @throws ReflectiveException if the comparison is ambiguous and an invocation cannot be made.
+     */
+    private static Pair<ObjectAndMethod,Object[]> chooseInvocation(String methodSig, ObjectAndMethod invokeOam, Object[] invokeParams,
+                                                                   ObjectAndMethod otherOam, Object[] otherParams) throws ReflectiveException{
+        Class<?>[] invokeParamTypes = invokeOam.getReflectiveComponent().getParameterTypes();
+        Class<?>[] otherParamTypes = otherOam.getReflectiveComponent().getParameterTypes();
+
+        //If only one is varargs, go with the non-varargs one, because if they both matched then the varargs params just include an empty array
+        if(invokeOam.isVarArgs() && !otherOam.isVarArgs()){
+            return new Pair<>(otherOam, otherParams);
+        }
+        else if(!invokeOam.isVarArgs() && otherOam.isVarArgs()){
+            return new Pair<>(invokeOam, invokeParams);
+        }
+        //Otherwise, parse the param types. default to the more specific type. if a null argument is provided to any position, an exception will ultimately be thrown
+        else{
+            for(int i = 0; i < invokeParamTypes.length; i++){
+                if(invokeParamTypes[i].equals(otherParamTypes[i]) || ParamUtils.isAcceptablePrimitive(invokeParamTypes[i], otherParamTypes[i])){
+                    continue;
+                }
+                else if(invokeParamTypes[i].isAssignableFrom(otherParamTypes[i])){
+                    if(otherParams != null && otherParams[i] != null){
+                        return new Pair<>(otherOam, otherParams);
+                    }
+                    //if the above condition isn't met, the ambiguous exception will be thrown
+                }
+                else if(otherParamTypes[i].isAssignableFrom(invokeParamTypes[i])){
+                    if(invokeParams != null && invokeParams[i] != null){
+                        return new Pair<>(invokeOam, invokeParams);
+                    }
+                    //if the above condition isn't met, the ambiguous exception will be thrown
+                }
+            }
+
+            //If it gets here, then it's an ambiguous call and an exception should be thrown
+            if(methodSig != null){
+                throw new NoMethodException(String.format("Ambiguous Method call: Multiple methods match signature %1$s with params %2$s",
+                        methodSig, ArrayUtil.deepToString(invokeParams)));
+            }
+            else{
+                throw new NoMethodException(String.format("Ambiguous Method call: Multiple methods could be called with params %1$s",
+                        ArrayUtil.deepToString(invokeParams)));
+            }
+        }
+    }
+
     //TODO ultimately, merge this with the invokeAll stuff as well
     /**
      * Parse all potentially matching methods, and either perform the
@@ -98,103 +215,6 @@ public class FindAndInvoke {
      * @return the result of the invocation.
      * @throws ReflectiveException if unable to reflectively invoke the method.
      */
-    private static Object performInvocation(String methodSig, Collection<ObjectAndMethod> oams, Object...newParams) throws ReflectiveException{
-        Object result = null;
-
-        //Validate and convert the params to identify the final matching methods
-        Map<ObjectAndMethod,Object[]> finalMatches = new HashMap<>();
-        for(ObjectAndMethod oam : oams){
-            Object[] finalParams = MethodUtils.validateInvocationAndConvertParams(oam.getReflectiveComponent(), newParams);
-            if(finalParams != null){
-                finalMatches.put(oam, finalParams);
-            }
-        }
-
-        //If no matches found, throw an exception
-        if(finalMatches.size() == 0){
-            if(methodSig != null){
-                throw new NoMethodException("No matching method found: " + methodSig + " " + Arrays.toString(newParams));
-            }
-            else{
-                throw new NoMethodException("No matching method found for parameters: " + Arrays.toString(newParams));
-            }
-        }
-        //If only one match, invoke the entry
-        else if(finalMatches.size() == 1){
-            Set<Map.Entry<ObjectAndMethod,Object[]>> entries = finalMatches.entrySet();
-            for(Map.Entry<ObjectAndMethod,Object[]> entry : entries){
-                result = RemoteInvoke.invokeMethod(entry.getKey(), entry.getValue());
-            }
-        }
-        else{
-            Set<Map.Entry<ObjectAndMethod,Object[]>> entries = finalMatches.entrySet();
-            Map.Entry<ObjectAndMethod,Object[]> invokeEntry = null;
-            for(Map.Entry<ObjectAndMethod,Object[]> entry : entries){
-                boolean ambiguous = true;
-                //Ensure the first entry is assigned as the invokeEntry, and compare it to the others
-                if(invokeEntry == null){
-                    invokeEntry = entry;
-                    continue;
-                }
-
-                //Get all values that need to be checked
-                Method invokeMethod = invokeEntry.getKey().getReflectiveComponent();
-                Class<?>[] invokeParamTypes = invokeMethod.getParameterTypes();
-                Object[] invokeParams = invokeEntry.getValue();
-                Method entryMethod = entry.getKey().getReflectiveComponent();
-                Class<?>[] entryParamTypes = entryMethod.getParameterTypes();
-                Object[] entryParams = entry.getValue();
-
-                //If only one is varargs, go with the non-varargs one, because if they both matched then the varargs params just include an empty array
-                if(invokeMethod.isVarArgs() && !entryMethod.isVarArgs()){
-                    invokeEntry = entry;
-                    ambiguous = false;
-                }
-                else if(!invokeMethod.isVarArgs() && entryMethod.isVarArgs()){
-                    continue;
-                }
-                //Otherwise, parse the param types. default to the more specific type. if a null argument is provided to any position, an exception will ultimately be thrown
-                else{
-                    for(int i = 0; i < invokeParamTypes.length; i++){
-                        if(invokeParamTypes[i].equals(entryParamTypes[i]) || ParamUtils.isAcceptablePrimitive(invokeParamTypes[i], entryParamTypes[i])){
-                            continue;
-                        }
-                        else if(invokeParamTypes[i].isAssignableFrom(entryParamTypes[i])){
-                            if(entryParams != null && entryParams[i] != null){
-                                invokeEntry = entry;
-                                ambiguous = false;
-                                break;
-                            }
-                            //if the above condition isn't met, the ambiguous exception will be thrown
-                        }
-                        else if(entryParamTypes[i].isAssignableFrom(invokeParamTypes[i])){
-                            if(invokeParams != null && invokeParams[i] != null){
-                                ambiguous = false;
-                                break;
-                            }
-                            //if the above condition isn't met, the ambiguous exception will be thrown
-                        }
-                    }
-                }
-
-                //If it's still ambiguous, throw an exception
-                if(ambiguous){
-                    if(methodSig != null){
-                        throw new NoMethodException(String.format("Ambiguous Method call: Multiple methods match signature %1$s with params %2$s",
-                                methodSig, ArrayUtil.deepToString(newParams)));
-                    }
-                    else{
-                        throw new NoMethodException(String.format("Ambiguous Method call: Multiple methods could be called with params %1$s",
-                                ArrayUtil.deepToString(newParams)));
-                    }
-                }
-            }
-
-            result = RemoteInvoke.invokeMethod(invokeEntry.getKey(), invokeEntry.getValue());
-        }
-
-        return result;
-    }
 
 
 
@@ -208,7 +228,7 @@ public class FindAndInvoke {
      * @throws ReflectiveException If unable to reflectively invoke the method.
      */
     public static Object findInvokeOneMethod(Collection<ObjectAndMethod> oams, Object... newParams) throws ReflectiveException{
-        return performInvocation(null, oams, newParams);
+        return performInvocation(null, oams, true, newParams);
     }
 
     /**
